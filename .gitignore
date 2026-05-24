@@ -1,5 +1,7 @@
 target/
 .tools/
+dist/
+installer/
 .idea/
 .vscode/
 *.iml
