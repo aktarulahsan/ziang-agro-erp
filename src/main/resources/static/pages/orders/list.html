@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order List | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav>
+      <a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a>
+      <a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a>
+      <a href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-cart-check"></i><span>Orders</span></div>
+        <div class="sidebar-submenu">
+          <a class="active" href="/pages/orders/list.html"><i class="bi bi-list-ul"></i>Order List</a>
+          <a href="/pages/orders/create.html"><i class="bi bi-plus-circle"></i>Create Order</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-receipt"></i><span>Invoices</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/invoices/list.html"><i class="bi bi-list-ul"></i>Invoice List</a>
+          <a href="/pages/invoices/create.html"><i class="bi bi-plus-circle"></i>Create Invoice</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-truck"></i><span>Deliveries</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/deliveries/list.html"><i class="bi bi-list-ul"></i>Delivery List</a>
+          <a href="/pages/deliveries/create.html"><i class="bi bi-plus-circle"></i>Create Delivery</a>
+        </div>
+      </div>
+      <a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a>
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar">
+      <div><h1>Order List</h1><p>Track draft, approval, billing, delivery, and returned sales orders</p></div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-success" href="/pages/orders/create.html"><i class="bi bi-plus-lg"></i> Create Order</a>
+        <button class="btn btn-outline-secondary btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label">Search Order</label>
+          <input id="orderSearch" class="form-control" placeholder="Order no, retailer, status, amount">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select id="statusFilter" class="form-select">
+            <option value="">All Status</option>
+            <option>DRAFT</option>
+            <option>PENDING</option>
+            <option>APPROVED</option>
+            <option>INVOICED</option>
+            <option>DELIVERED</option>
+            <option>CANCELLED</option>
+            <option>RETURNED</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-outline-secondary w-100" onclick="clearFilters()"><i class="bi bi-x-circle"></i> Clear</button>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-outline-success w-100" onclick="loadOrders()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="metric-grid">
+      <div class="metric-card"><span>Total Orders</span><strong id="totalOrders">0</strong></div>
+      <div class="metric-card"><span>Pending</span><strong id="pendingOrders">0</strong></div>
+      <div class="metric-card"><span>Approved</span><strong id="approvedOrders">0</strong></div>
+      <div class="metric-card"><span>Net Value</span><strong id="netValue">0.00</strong></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Orders</h2>
+        <span class="small text-muted" id="listMessage"></span>
+      </div>
+      <div class="table-panel">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Order No</th>
+              <th>Date</th>
+              <th>Retailer</th>
+              <th>Status</th>
+              <th class="text-end">Net</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody id="orderRows"><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  let orders = [];
+
+  function money(value) {
+    return Number(value || 0).toFixed(2);
+  }
+
+  function statusBadge(status) {
+    const tone = {
+      PENDING: 'warning',
+      APPROVED: 'success',
+      INVOICED: 'primary',
+      DELIVERED: 'info',
+      CANCELLED: 'secondary',
+      RETURNED: 'danger'
+    }[status] || 'light text-dark';
+    return `<span class="badge text-bg-${tone}">${status || 'DRAFT'}</span>`;
+  }
+
+  function filteredOrders() {
+    const query = orderSearch.value.trim().toLowerCase();
+    const status = statusFilter.value;
+    return orders.filter(order => {
+      const searchable = [order.orderNumber, order.orderDate, order.retailerName, order.status, order.netAmount].join(' ').toLowerCase();
+      return (!query || searchable.includes(query)) && (!status || order.status === status);
+    });
+  }
+
+  function renderSummary(rows) {
+    totalOrders.textContent = rows.length;
+    pendingOrders.textContent = rows.filter(order => order.status === 'PENDING').length;
+    approvedOrders.textContent = rows.filter(order => order.status === 'APPROVED').length;
+    netValue.textContent = money(rows.reduce((sum, order) => sum + Number(order.netAmount || 0), 0));
+  }
+
+  function renderOrders() {
+    const rows = filteredOrders();
+    renderSummary(rows);
+    listMessage.textContent = rows.length ? `${rows.length} order(s) found` : 'No order found';
+    orderRows.innerHTML = rows.length ? rows.map(order => `
+      <tr>
+        <td>${order.orderNumber || '-'}</td>
+        <td>${order.orderDate || '-'}</td>
+        <td>${order.retailerName || '-'}</td>
+        <td>${statusBadge(order.status)}</td>
+        <td class="text-end">${money(order.netAmount)}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-primary" href="/pages/orders/create.html?orderId=${order.id}"><i class="bi bi-eye"></i></a>
+            ${order.status === 'PENDING' ? `<button class="btn btn-outline-success" onclick="approveOrder(${order.id})"><i class="bi bi-check2-circle"></i></button>` : ''}
+            ${order.status === 'APPROVED' ? `<button class="btn btn-outline-secondary" onclick="createInvoice(${order.id})"><i class="bi bi-receipt"></i></button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('') : '<tr><td colspan="6">No orders found</td></tr>';
+  }
+
+  async function loadOrders() {
+    listMessage.textContent = 'Loading...';
+    const page = await api('/api/orders?size=100');
+    orders = page.content || [];
+    renderOrders();
+  }
+
+  async function approveOrder(id) {
+    await api(`/api/orders/${id}/approve`, { method: 'POST' });
+    await loadOrders();
+  }
+
+  async function createInvoice(id) {
+    await api(`/api/workflow/orders/${id}/invoice`, { method: 'POST' });
+    window.location.href = '/pages/invoices/list.html';
+  }
+
+  function clearFilters() {
+    orderSearch.value = '';
+    statusFilter.value = '';
+    renderOrders();
+  }
+
+  orderSearch.addEventListener('input', renderOrders);
+  statusFilter.addEventListener('change', renderOrders);
+  loadOrders().catch(error => {
+    listMessage.textContent = error.message;
+    orderRows.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+  });
+</script>
+</body>
+</html>

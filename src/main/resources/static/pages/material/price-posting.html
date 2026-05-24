@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Price Setup | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav>
+      <a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a>
+      <a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a>
+      <a class="active" href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a>
+      <a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a>
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar topbar-compact">
+      <div><h1>Price Setup</h1><p>Material valuation, conditions, audit trail, and debit credit log</p></div>
+      <button class="btn btn-outline-success" onclick="refreshSelectedPriceAudit()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </header>
+    <nav class="module-nav">
+      <a href="/pages/material/list.html">Material List</a>
+      <a href="/pages/material/create.html">Create Material</a>
+      <a href="/pages/material/stock.html">Stock View</a>
+      <a href="/pages/material/stock-posting.html">Stock Posting</a>
+      <a href="/pages/material/movements.html">Movement History</a>
+      <a href="/pages/material/price-posting.html" class="active">Price Setup</a>
+      <a href="/pages/material/price-history.html">Price History</a>
+    </nav>
+
+    <section class="price-workbench">
+      <div class="panel price-form-panel">
+        <div class="panel-header"><h2>Single Price Change</h2><span class="badge text-bg-success">MR21</span></div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Material</label>
+            <select id="priceProductId" class="form-select" onchange="fillMaterialPrice()"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Purchase Price</label>
+            <input id="pricePurchase" type="number" class="form-control" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Current Sales Price</label>
+            <input id="priceSales" type="number" class="form-control" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Base New Price</label>
+            <input id="priceRetailer" type="number" class="form-control" min="0" step="0.01" oninput="previewMaterialPrice()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">VAT %</label>
+            <input id="priceVat" type="number" class="form-control" readonly>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Discount %</label>
+            <input id="priceDiscount" type="number" class="form-control" readonly>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Surcharge</label>
+            <input id="priceSurcharge" type="number" class="form-control" value="0" min="0" step="0.01" oninput="previewMaterialPrice()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Discount Amount</label>
+            <input id="priceDiscountAmount" type="number" class="form-control" value="0" min="0" step="0.01" oninput="previewMaterialPrice()">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Price Change Reason</label>
+            <input id="priceRemarks" class="form-control" placeholder="Price revision, purchase cost changed, seasonal rate">
+          </div>
+          <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+            <button class="btn btn-success" onclick="saveMaterialPrice()"><i class="bi bi-check2-circle"></i> Post Price</button>
+            <span id="priceMessage" class="small"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h2>Valuation Preview</h2><i class="bi bi-calculator text-success"></i></div>
+        <div class="price-kpi-grid">
+          <div class="price-kpi"><span>Gross Margin</span><strong id="priceMargin">0.00</strong></div>
+          <div class="price-kpi"><span>Effective Price</span><strong id="priceNet">0.00</strong></div>
+          <div class="price-kpi"><span>Last Stock Qty</span><strong id="priceStockQty">0.000</strong></div>
+          <div class="price-kpi"><span>Last Value Change</span><strong id="priceValueChange">0.00</strong></div>
+        </div>
+        <div class="price-document mt-3">
+          <span>Material Document</span>
+          <strong id="priceDocumentNumber">Not posted</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Bulk Price Update</h2><span class="badge text-bg-light">JSON or Excel</span></div>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <label class="form-label">Bulk JSON</label>
+          <textarea id="bulkPriceJson" class="form-control bulk-price-json" spellcheck="false">[
+  {
+    "productCode": "PRD-BONEMEAL-001",
+    "newPrice": 340,
+    "reason": "Bulk price revision",
+    "changedBy": "admin",
+    "conditions": []
+  }
+]</textarea>
+          <button class="btn btn-outline-success mt-2" onclick="postBulkMaterialPrice()"><i class="bi bi-braces"></i> Post JSON Bulk</button>
+        </div>
+        <div class="col-lg-5">
+          <label class="form-label">Excel Upload</label>
+          <input id="bulkPriceExcel" type="file" class="form-control" accept=".xlsx,.xls">
+          <div class="small text-muted mt-2">Columns: productCode, newPrice, reason, changedBy, surcharge, discount</div>
+          <button class="btn btn-outline-success mt-2" onclick="uploadBulkMaterialPrice()"><i class="bi bi-file-earmark-excel"></i> Upload Excel</button>
+          <div id="bulkPriceMessage" class="small mt-2"></div>
+        </div>
+      </div>
+      <div class="table-panel mt-3">
+        <table class="table align-middle">
+          <thead><tr><th>Material</th><th class="text-end">Old</th><th class="text-end">New</th><th class="text-end">Stock</th><th class="text-end">Value Change</th><th>Document</th></tr></thead>
+          <tbody id="bulkPriceRows"><tr><td colspan="6">No bulk posting yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="price-audit-grid">
+      <div class="panel">
+        <div class="panel-header"><h2>Price Change History</h2><span class="badge text-bg-light">Audit Trail</span></div>
+        <div class="table-panel">
+          <table class="table align-middle">
+            <thead><tr><th>Date</th><th class="text-end">Old</th><th class="text-end">New</th><th class="text-end">Value Change</th><th>By</th><th>Reason</th></tr></thead>
+            <tbody id="selectedPriceHistoryRows"><tr><td colspan="6">Select a material.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><h2>Accounting Entries</h2><span class="badge text-bg-light">Debit/Credit</span></div>
+        <div class="table-panel">
+          <table class="table align-middle">
+            <thead><tr><th>Date</th><th>Type</th><th class="text-end">Amount</th><th>Description</th><th>Document</th></tr></thead>
+            <tbody id="selectedAccountingRows"><tr><td colspan="5">Select a material.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script src="/js/material-module.js"></script>
+<script>requireAuth();initPricePosting();</script>
+</body>
+</html>

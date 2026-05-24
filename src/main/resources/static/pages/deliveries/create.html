@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Delivery | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav>
+      <a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a>
+      <a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a>
+      <a href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-cart-check"></i><span>Orders</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/orders/list.html"><i class="bi bi-list-ul"></i>Order List</a>
+          <a href="/pages/orders/create.html"><i class="bi bi-plus-circle"></i>Create Order</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-receipt"></i><span>Invoices</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/invoices/list.html"><i class="bi bi-list-ul"></i>Invoice List</a>
+          <a href="/pages/invoices/create.html"><i class="bi bi-plus-circle"></i>Create Invoice</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-truck"></i><span>Deliveries</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/deliveries/list.html"><i class="bi bi-list-ul"></i>Delivery List</a>
+          <a class="active" href="/pages/deliveries/create.html"><i class="bi bi-plus-circle"></i>Create Delivery</a>
+        </div>
+      </div>
+      <a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a>
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar">
+      <div><h1>Outbound Delivery</h1><p>Create invoice-based delivery and post warehouse stock-out</p></div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/pages/deliveries/list.html"><i class="bi bi-list-ul"></i> Delivery List</a>
+        <button class="btn btn-outline-secondary btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Create Delivery</h2><button class="btn btn-sm btn-outline-secondary" onclick="loadLookups()"><i class="bi bi-arrow-clockwise"></i></button></div>
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-5">
+          <label class="form-label">Invoice Search</label>
+          <input id="invoiceSearch" class="form-control" list="invoiceOptions" placeholder="Type invoice no, retailer, order no, or due" oninput="resolveInvoice()">
+          <datalist id="invoiceOptions"></datalist>
+        </div>
+        <div class="col-md-2"><label class="form-label">Invoice ID</label><input id="invoiceId" class="form-control" readonly></div>
+        <div class="col-md-3"><label class="form-label">Retailer</label><input id="retailerView" class="form-control" readonly></div>
+        <div class="col-md-2"><label class="form-label">Invoice Status</label><input id="invoiceStatusView" class="form-control" readonly></div>
+        <div class="col-md-3"><label class="form-label">Warehouse</label><select id="warehouseId" class="form-select"></select></div>
+        <div class="col-md-3"><label class="form-label">Route / Territory</label><input id="routeName" class="form-control" placeholder="North route"></div>
+        <div class="col-md-3"><label class="form-label">Vehicle / Transport</label><input id="vehicleDetails" class="form-control" placeholder="Truck no or transport"></div>
+        <div class="col-md-3"><label class="form-label">Transport Cost</label><input id="transportCost" type="number" class="form-control" value="0"></div>
+        <div class="col-md-3"><label class="form-label">Delivery Person</label><input id="deliveryPerson" class="form-control"></div>
+        <div class="col-md-3"><label class="form-label">Contact No</label><input id="deliveryContactNo" class="form-control"></div>
+        <div class="col-md-4"><label class="form-label">Delivery Address</label><input id="deliveryAddress" class="form-control"></div>
+        <div class="col-md-2"><button id="deliverySubmitBtn" class="btn btn-success w-100" onclick="createDelivery()"><i class="bi bi-truck"></i> Confirm</button></div>
+        <div class="col-md-10"><label class="form-label">Remarks</label><input id="remarks" class="form-control" placeholder="Challan note, partial delivery note, driver instruction"></div>
+        <div class="col-md-2"><a class="btn btn-outline-secondary w-100 mt-4" href="/pages/invoice-print.html"><i class="bi bi-printer"></i> Challan</a></div>
+      </div>
+      <div class="small text-muted mt-3" id="message"></div>
+    </section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  let invoices = [], deliverySaving = false;
+  function money(v) { return Number(v || 0).toFixed(2); }
+  function optionValue(parts) { return parts.filter(Boolean).join(' | '); }
+  function normalize(value) { return String(value || '').toLowerCase().trim(); }
+  async function loadLookups() {
+    const [invoiceRows, warehouseRows] = await Promise.all([api('/api/invoices/delivery-pending'), api('/api/setup/warehouses')]);
+    invoices = invoiceRows || [];
+    invoiceOptions.innerHTML = invoices.map(i => `<option value="${optionValue([i.invoiceNumber, 'ID ' + i.id, i.retailerName, i.orderNumber, i.status, 'Due ' + money(i.dueAmount)])}"></option>`).join('');
+    warehouseId.innerHTML = warehouseRows.map(w => `<option value="${w.id}">${w.name} (${w.code})</option>`).join('');
+    applyQueryParams();
+    if (!invoices.length) showMessage('No invoice pending for delivery.');
+  }
+  function resolveInvoice() {
+    const q = normalize(invoiceSearch.value);
+    invoiceId.value = ''; retailerView.value = ''; invoiceStatusView.value = '';
+    if (!q) return;
+    const firstSegment = normalize(invoiceSearch.value.split('|')[0]);
+    const invoice = invoices.find(i => normalize(i.invoiceNumber) === firstSegment)
+      || invoices.find(i => normalize(i.invoiceNumber) === q || String(i.id) === q || normalize('id ' + i.id) === q)
+      || invoices.find(i => [i.invoiceNumber, i.retailerName, i.orderNumber].some(v => normalize(v).includes(q)));
+    if (!invoice) return;
+    invoiceId.value = invoice.id;
+    retailerView.value = invoice.retailerName;
+    invoiceStatusView.value = invoice.status;
+    deliveryAddress.value = deliveryAddress.value || invoice.retailerName;
+  }
+  function selectInvoice(id) {
+    const invoice = invoices.find(i => i.id === Number(id));
+    if (!invoice) return showMessage('This invoice is already delivered or not available for delivery.', true);
+    invoiceSearch.value = optionValue([invoice.invoiceNumber, 'ID ' + invoice.id, invoice.retailerName, invoice.orderNumber, invoice.status]);
+    resolveInvoice();
+  }
+  function applyQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('invoiceId')) selectInvoice(params.get('invoiceId'));
+  }
+  async function createDelivery() {
+    if (deliverySaving) return;
+    resolveInvoice();
+    if (!invoiceId.value) return showMessage('Select an invoice first.', true);
+    const selectedInvoice = invoices.find(i => Number(i.id) === Number(invoiceId.value));
+    if (!selectedInvoice) return showMessage('This invoice is already delivered or not available for delivery. Refresh and choose another invoice.', true);
+    if (!warehouseId.value) return showMessage('Select a warehouse first.', true);
+    deliverySaving = true; deliverySubmitBtn.disabled = true; deliverySubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving';
+    try {
+      const data = await api(`/api/workflow/invoices/${invoiceId.value}/delivery`, { method: 'POST', body: JSON.stringify({
+        warehouseId: Number(warehouseId.value), deliveryAddress: deliveryAddress.value, vehicleDetails: vehicleDetails.value,
+        deliveryPerson: deliveryPerson.value, deliveryContactNo: deliveryContactNo.value, routeName: routeName.value,
+        transportCost: Number(transportCost.value || 0), remarks: remarks.value
+      })});
+      showMessage(`Delivery ${data.deliveryNumber} created and stock-out posted.`);
+      clearDeliveryForm();
+      await loadLookups();
+    } catch (error) { showMessage(error.message, true); }
+    finally { deliverySaving = false; deliverySubmitBtn.disabled = false; deliverySubmitBtn.innerHTML = '<i class="bi bi-truck"></i> Confirm'; }
+  }
+  function clearDeliveryForm() {
+    invoiceSearch.value = ''; invoiceId.value = ''; retailerView.value = ''; invoiceStatusView.value = '';
+    routeName.value = ''; vehicleDetails.value = ''; transportCost.value = '0'; deliveryPerson.value = '';
+    deliveryContactNo.value = ''; deliveryAddress.value = ''; remarks.value = '';
+  }
+  function showMessage(text, error = false) { message.className = error ? 'small text-danger mt-3' : 'small text-success mt-3'; message.textContent = text; }
+  loadLookups().catch(error => showMessage(error.message, true));
+</script>
+</body>
+</html>

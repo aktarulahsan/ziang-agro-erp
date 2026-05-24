@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>POS Order | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav>
+      <a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a>
+      <a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a>
+      <a href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-cart-check"></i><span>Orders</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/orders/list.html"><i class="bi bi-list-ul"></i>Order List</a>
+          <a class="active" href="/pages/orders/create.html"><i class="bi bi-plus-circle"></i>Create Order</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-receipt"></i><span>Invoices</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/invoices/list.html"><i class="bi bi-list-ul"></i>Invoice List</a>
+          <a href="/pages/invoices/create.html"><i class="bi bi-plus-circle"></i>Create Invoice</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-truck"></i><span>Deliveries</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/deliveries/list.html"><i class="bi bi-list-ul"></i>Delivery List</a>
+          <a href="/pages/deliveries/create.html"><i class="bi bi-plus-circle"></i>Create Delivery</a>
+        </div>
+      </div>
+      <a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <header class="topbar topbar-compact">
+      <div><h1 id="documentTitle">POS Sales Order</h1><p>Fast item entry with barcode scan, stock check, and checkout cart</p></div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/pages/orders/list.html"><i class="bi bi-list-ul"></i> Order List</a>
+        <button class="btn btn-outline-danger" onclick="clearOrder()"><i class="bi bi-plus-circle"></i> New</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </header>
+
+    <section class="panel order-entry-panel compact">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Retailer</label>
+          <input id="retailerSearch" class="form-control" list="retailerOptions" placeholder="Type retailer name, code, or mobile" oninput="resolveRetailer()">
+          <datalist id="retailerOptions"></datalist>
+          <input id="retailerId" type="hidden">
+        </div>
+        <div class="col-md-2"><label class="form-label">Order Date</label><input id="orderDate" type="date" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label">Delivery</label><input id="deliveryDate" type="date" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label">Payment</label><select id="paymentTerms" class="form-select"><option>Cash</option><option>7 Days</option><option>15 Days</option><option>30 Days</option></select></div>
+        <div class="col-md-2"><label class="form-label">Warehouse</label><select id="warehouseId" class="form-select" onchange="loadStockSnapshot()"></select></div>
+      </div>
+      <div class="metric-grid metric-grid-compact mt-2">
+        <div class="metric-card"><span>Credit Limit</span><strong id="creditLimitView">0.00</strong></div>
+        <div class="metric-card"><span>Current Due</span><strong id="dueView">0.00</strong></div>
+        <div class="metric-card"><span>Items</span><strong id="itemCountView">0</strong></div>
+        <div class="metric-card"><span>Status</span><strong id="orderStatusView">Draft</strong></div>
+      </div>
+    </section>
+
+    <section class="pos-shell">
+      <div>
+        <div class="panel">
+          <div class="panel-header"><h2>Product Entry</h2><button class="btn btn-sm btn-outline-secondary" onclick="focusBarcode()"><i class="bi bi-upc-scan"></i> Scan</button></div>
+          <div class="pos-toolbar">
+            <div>
+              <label class="form-label">Barcode / Product Code</label>
+              <input id="barcodeInput" class="form-control barcode-input" placeholder="Scan or type product code" onkeydown="barcodeKey(event)">
+            </div>
+            <div>
+              <label class="form-label">Search Product</label>
+              <input id="productSearch" class="form-control" placeholder="Name, code, type, pack" oninput="filterProducts()">
+            </div>
+            <div>
+              <label class="form-label">Qty</label>
+              <input id="quantity" type="number" min="0.001" step="0.001" class="form-control" value="1">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <div class="small text-muted" id="productCount">0 products</div>
+            <div class="small text-muted">Product code is used as barcode</div>
+          </div>
+          <div id="productGrid" class="product-grid"></div>
+        </div>
+      </div>
+
+      <aside class="panel cart-panel">
+        <div class="panel-header">
+          <h2>Cart</h2>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearCart()"><i class="bi bi-trash"></i></button>
+        </div>
+        <div id="cartList" class="cart-list"></div>
+        <div class="checkout-total">
+          <div class="queue-item"><span>Gross</span><strong id="grossTotal">0.00</strong></div>
+          <div class="queue-item"><span>Discount</span><strong id="discountTotal">0.00</strong></div>
+          <div class="queue-item"><span>VAT</span><strong id="vatTotal">0.00</strong></div>
+          <div class="queue-item"><span>Net Total</span><strong id="netTotal">0.00</strong></div>
+          <div class="queue-item"><span>Projected Due</span><strong id="projectedDueView">0.00</strong></div>
+        </div>
+        <div id="message" class="small text-muted my-3"></div>
+        <div class="d-grid gap-2">
+          <button id="saveOrderBtn" class="btn btn-success btn-lg" onclick="createOrder()"><i class="bi bi-save"></i> Save Order</button>
+          <button class="btn btn-outline-success" onclick="approveOrder()"><i class="bi bi-check2-circle"></i> Approve</button>
+          <button class="btn btn-outline-primary" onclick="generateInvoice()"><i class="bi bi-receipt"></i> Billing</button>
+          <button class="btn btn-outline-secondary" onclick="goDelivery()"><i class="bi bi-truck"></i> Delivery</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  let retailers = [], products = [], filteredProducts = [], warehouses = [], stockByProduct = {}, lines = [], selectedOrder = null, selectedInvoice = null, orderSaving = false;
+  orderDate.valueAsDate = new Date();
+
+  function optionValue(parts) { return parts.filter(Boolean).join(' | '); }
+  function money(value) { return Number(value || 0).toFixed(2); }
+  function qty(value) { return Number(value || 0).toFixed(3); }
+  function productPrice(p) { return Number(p.retailerPrice || p.salesPrice || 0); }
+  function stockAvailable(productId) { return Number(stockByProduct[productId] || 0); }
+
+  async function loadLookups() {
+    const [retailerPage, productPage, warehouseRows] = await Promise.all([api('/api/retailers?size=100'), api('/api/products?size=100'), api('/api/setup/warehouses')]);
+    retailers = retailerPage.content || [];
+    products = productPage.content || [];
+    filteredProducts = products;
+    warehouses = warehouseRows || [];
+    warehouseId.innerHTML = warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+    retailerOptions.innerHTML = retailers.map(r => `<option value="${optionValue([r.retailerName, r.retailerCode, r.mobileNumber])}"></option>`).join('');
+    await loadStockSnapshot();
+    if (retailers.length) {
+      retailerSearch.value = optionValue([retailers[0].retailerName, retailers[0].retailerCode, retailers[0].mobileNumber]);
+      resolveRetailer();
+    }
+    const orderId = new URLSearchParams(window.location.search).get('orderId');
+    if (orderId) await selectOrder(orderId);
+    filterProducts();
+    renderCart();
+    focusBarcode();
+  }
+
+  function resolveRetailer() {
+    const value = retailerSearch.value.toLowerCase();
+    const r = retailers.find(row => [row.retailerName, row.retailerCode, row.mobileNumber].some(v => String(v || '').toLowerCase().includes(value) || value.includes(String(v || '').toLowerCase())));
+    retailerId.value = r ? r.id : '';
+    creditLimitView.textContent = money(r?.creditLimit);
+    dueView.textContent = money(r?.currentDueBalance);
+    updateTotals();
+  }
+
+  async function loadStockSnapshot() {
+    if (!warehouseId.value) return;
+    const rows = await api(`/api/materials/stock-summary?warehouseId=${warehouseId.value}`);
+    stockByProduct = Object.fromEntries(rows.map(row => [row.id, Number(row.currentStock || 0)]));
+    filterProducts();
+    renderCart();
+  }
+
+  function filterProducts() {
+    const q = (productSearch.value || '').toLowerCase().trim();
+    filteredProducts = !q ? products : products.filter(p =>
+      [p.productCode, p.productName, p.materialType, p.packSize].some(v => String(v || '').toLowerCase().includes(q))
+    );
+    productCount.textContent = `${filteredProducts.length} products`;
+    productGrid.innerHTML = filteredProducts.map(p => {
+      const stock = stockAvailable(p.id);
+      const disabled = stock <= 0;
+      return `<button class="product-tile ${disabled ? 'disabled' : ''}" onclick="addProduct(${p.id})" ${disabled ? 'disabled' : ''}>
+        <span class="code">${p.productCode}</span>
+        <strong>${p.productName}</strong>
+        <span class="text-muted small">${(p.materialType || '').replaceAll('_', ' ')} · ${p.packSize || '-'}</span>
+        <span class="price">${money(productPrice(p))}</span>
+        <span class="${stock <= 0 ? 'text-danger' : 'text-muted'} small">Stock ${qty(stock)}</span>
+      </button>`;
+    }).join('') || '<div class="text-muted">No product found.</div>';
+  }
+
+  function focusBarcode() {
+    setTimeout(() => barcodeInput.focus(), 50);
+  }
+
+  function barcodeKey(event) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const code = barcodeInput.value.trim();
+    if (!code) return;
+    const product = products.find(p => String(p.productCode).toLowerCase() === code.toLowerCase());
+    if (!product) {
+      showMessage(`No product found for barcode/code ${code}.`, true);
+      barcodeInput.select();
+      return;
+    }
+    addProduct(product.id);
+    barcodeInput.value = '';
+    focusBarcode();
+  }
+
+  function requestedQty(productId, skipIndex = -1) {
+    return lines.reduce((sum, line, index) => index === skipIndex || line.productId !== productId ? sum : sum + Number(line.quantity || 0), 0);
+  }
+
+  function addProduct(productId) {
+    const p = products.find(item => item.id === Number(productId));
+    if (!p) return showMessage('Select a valid product.', true);
+    const addQty = Number(quantity.value || 0);
+    if (addQty <= 0) return showMessage('Quantity must be greater than zero.', true);
+    const available = stockAvailable(p.id);
+    const requested = requestedQty(p.id) + addQty;
+    if (requested > available) return showMessage(`${p.productCode} stock is ${qty(available)}. Requested ${qty(requested)} is over stock.`, true);
+    const existing = lines.find(l => l.productId === p.id);
+    if (existing) existing.quantity += addQty;
+    else lines.push({
+      productId: p.id,
+      productCode: p.productCode,
+      productName: p.productName,
+      materialType: p.materialType,
+      packSize: p.packSize,
+      quantity: addQty,
+      unitPrice: productPrice(p),
+      discountPercent: Number(p.discountPercent || 0),
+      vatPercent: Number(p.vatPercent || 0)
+    });
+    renderCart();
+    showMessage(`${p.productCode} added.`);
+  }
+
+  function calc(line) {
+    const gross = line.quantity * line.unitPrice;
+    const discount = gross * line.discountPercent / 100;
+    const vat = (gross - discount) * line.vatPercent / 100;
+    return { gross, discount, vat, net: gross - discount + vat };
+  }
+
+  function lineStockOver(line) { return Number(line.quantity || 0) > stockAvailable(line.productId); }
+  function hasStockErrors() { return lines.some(lineStockOver); }
+
+  function renderCart() {
+    cartList.innerHTML = lines.length ? lines.map((line, index) => {
+      const c = calc(line);
+      const stock = stockAvailable(line.productId);
+      const over = line.quantity > stock;
+      return `<div class="cart-line ${over ? 'stock-over-row' : ''}">
+        <div class="cart-line-title">
+          <div><strong>${line.productName}</strong><div class="small text-muted">${line.productCode} · Stock ${qty(stock)}</div>${over ? '<div class="small fw-bold">Over stock. Reduce quantity.</div>' : ''}</div>
+          <strong>${money(c.net)}</strong>
+        </div>
+        <div class="cart-controls">
+          <button class="btn btn-sm btn-outline-secondary" onclick="stepQty(${index}, -1)"><i class="bi bi-dash"></i></button>
+          <input class="form-control form-control-sm text-end" type="number" min="0.001" step="0.001" value="${line.quantity}" onchange="setQty(${index}, this.value)">
+          <button class="btn btn-sm btn-outline-secondary" onclick="stepQty(${index}, 1)"><i class="bi bi-plus"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="removeLine(${index})"><i class="bi bi-x"></i></button>
+        </div>
+        <div class="small text-muted mt-2">${qty(line.quantity)} x ${money(line.unitPrice)} · Disc ${money(c.discount)} · VAT ${money(c.vat)}</div>
+      </div>`;
+    }).join('') : '<div class="text-muted">Scan barcode or choose products to add items.</div>';
+    saveOrderBtn.disabled = hasStockErrors() || !lines.length;
+    itemCountView.textContent = lines.length;
+    updateTotals();
+  }
+
+  function setQty(index, value) {
+    lines[index].quantity = Number(value || 0);
+    renderCart();
+  }
+  function stepQty(index, delta) {
+    const next = Number(lines[index].quantity || 0) + delta;
+    if (next <= 0) return;
+    lines[index].quantity = next;
+    renderCart();
+  }
+  function removeLine(index) { lines.splice(index, 1); renderCart(); }
+  function clearCart() { lines = []; renderCart(); focusBarcode(); }
+
+  function totals() {
+    return lines.map(calc).reduce((a, c) => ({ gross: a.gross + c.gross, discount: a.discount + c.discount, vat: a.vat + c.vat, net: a.net + c.net }), { gross: 0, discount: 0, vat: 0, net: 0 });
+  }
+  function selectedRetailer() { return retailers.find(r => r.id === Number(retailerId.value)); }
+  function updateTotals() {
+    const t = totals();
+    const r = selectedRetailer();
+    grossTotal.textContent = money(t.gross);
+    discountTotal.textContent = money(t.discount);
+    vatTotal.textContent = money(t.vat);
+    netTotal.textContent = money(t.net);
+    projectedDueView.textContent = money(Number(r?.currentDueBalance || 0) + t.net);
+    orderStatusView.textContent = selectedOrder?.status || (hasStockErrors() ? 'Stock Blocked' : 'Draft');
+  }
+
+  async function selectOrder(id) {
+    const o = await api(`/api/orders/${id}`);
+    selectedOrder = o; selectedInvoice = null;
+    documentTitle.textContent = o.orderNumber;
+    const retailer = retailers.find(r => r.id === o.retailerId);
+    retailerId.value = o.retailerId;
+    retailerSearch.value = retailer ? optionValue([retailer.retailerName, retailer.retailerCode, retailer.mobileNumber]) : o.retailerName;
+    lines = (o.items || []).map(i => {
+      const product = products.find(p => p.id === i.productId);
+      return { productId: i.productId, productCode: product?.productCode || '', productName: i.productName, materialType: product?.materialType || '', packSize: product?.packSize || '', quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), discountPercent: 0, vatPercent: 0 };
+    });
+    resolveRetailer();
+    renderCart();
+    showMessage(`Opened ${o.orderNumber}`);
+  }
+
+  async function createOrder() {
+    if (orderSaving) return;
+    if (!lines.length) return showMessage('Add at least one item.', true);
+    if (hasStockErrors()) return showMessage('One or more items are over available stock.', true);
+    resolveRetailer();
+    if (!retailerId.value) return showMessage('Select a retailer first.', true);
+    orderSaving = true;
+    saveOrderBtn.disabled = true;
+    saveOrderBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving';
+    try {
+      const data = await api('/api/orders', { method: 'POST', body: JSON.stringify({ retailerId: Number(retailerId.value), items: lines.map(l => ({ productId: l.productId, quantity: l.quantity })) })});
+      selectedOrder = data;
+      documentTitle.textContent = data.orderNumber;
+      orderStatusView.textContent = data.status;
+      showMessage(`Order ${data.orderNumber} saved.`);
+      clearOrderEntryAfterSubmit();
+      history.replaceState(null, '', `/pages/orders/create.html?orderId=${data.id}`);
+    } catch (error) {
+      showMessage(error.message, true);
+    } finally {
+      orderSaving = false;
+      saveOrderBtn.disabled = hasStockErrors() || !lines.length;
+      saveOrderBtn.innerHTML = '<i class="bi bi-save"></i> Save Order';
+    }
+  }
+
+  async function approveOrder() {
+    if (!selectedOrder) return showMessage('Save or open an order first.', true);
+    const data = await api(`/api/orders/${selectedOrder.id}/approve`, { method: 'POST' });
+    selectedOrder = data;
+    orderStatusView.textContent = data.status;
+    showMessage(`Order ${data.orderNumber} approved.`);
+  }
+  async function generateInvoice() {
+    if (!selectedOrder) return showMessage('Save or open an order first.', true);
+    const data = await api(`/api/workflow/orders/${selectedOrder.id}/invoice`, { method: 'POST' });
+    selectedInvoice = data;
+    orderStatusView.textContent = 'INVOICED';
+    showMessage(`Invoice ${data.invoiceNumber} generated.`);
+  }
+  function goDelivery() {
+    window.location.href = selectedInvoice ? `/pages/deliveries/create.html?invoiceId=${selectedInvoice.id}` : '/pages/deliveries/create.html';
+  }
+  function clearOrder() {
+    selectedOrder = null; selectedInvoice = null; lines = [];
+    documentTitle.textContent = 'POS Sales Order';
+    orderStatusView.textContent = 'Draft';
+    deliveryDate.value = '';
+    paymentTerms.value = 'Cash';
+    quantity.value = '1';
+    barcodeInput.value = '';
+    productSearch.value = '';
+    filterProducts();
+    renderCart();
+    history.replaceState(null, '', '/pages/orders/create.html');
+    showMessage('Ready for new POS order.');
+    focusBarcode();
+  }
+  function clearOrderEntryAfterSubmit() {
+    lines = [];
+    deliveryDate.value = '';
+    paymentTerms.value = 'Cash';
+    quantity.value = '1';
+    barcodeInput.value = '';
+    productSearch.value = '';
+    filterProducts();
+    renderCart();
+    focusBarcode();
+  }
+  function showMessage(text, error = false) {
+    message.className = error ? 'small text-danger my-3' : 'small text-success my-3';
+    message.textContent = text;
+  }
+
+  loadLookups().catch(error => showMessage(error.message, true));
+</script>
+</body>
+</html>

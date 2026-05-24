@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Material | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell"><aside class="sidebar"><div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div><nav><a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a><a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a><a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a><a class="active" href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a><a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a></nav></aside>
+<main class="content">
+  <header class="topbar topbar-compact"><div><h1>Create Material</h1><p>Material master creation</p></div></header>
+  <nav class="module-nav"><a href="/pages/material/list.html">Material List</a><a href="/pages/material/create.html" class="active">Create Material</a><a href="/pages/material/stock.html">Stock View</a><a href="/pages/material/stock-posting.html">Stock Posting</a><a href="/pages/material/movements.html">Movement History</a><a href="/pages/material/price-posting.html">Price Posting</a><a href="/pages/material/price-history.html">Price History</a></nav>
+  <section class="panel">
+    <div class="panel-header"><h2 id="materialFormTitle">Basic Data and Valuation</h2><button class="btn btn-sm btn-outline-secondary" onclick="clearMaterialMasterForm()"><i class="bi bi-x-circle"></i> Clear</button></div>
+    <div class="row g-3">
+      <div class="col-md-3"><label class="form-label">Material Code</label><input id="productCode" class="form-control"></div>
+      <div class="col-md-5"><label class="form-label">Material Name</label><input id="productName" class="form-control"></div>
+      <div class="col-md-4"><label class="form-label">Material Type</label><select id="materialType" class="form-select"><option value="RAW_MATERIALS">Raw Materials</option><option value="SEMIFINISHED_PRODUCTS">Semifinished</option><option value="FINISHED_PRODUCTS">Finished</option><option value="TRADING_PRODUCT">Trading</option></select></div>
+      <div class="col-md-3"><label class="form-label">Category</label><select id="categoryId" class="form-select"></select></div>
+      <div class="col-md-3"><label class="form-label">Sub Category</label><select id="subCategoryId" class="form-select"></select></div>
+      <div class="col-md-3"><label class="form-label">Brand</label><select id="brandId" class="form-select"></select></div>
+      <div class="col-md-3"><label class="form-label">Base Unit</label><select id="unitId" class="form-select"></select></div>
+      <div class="col-md-3"><label class="form-label">Pack Size</label><input id="packSize" class="form-control"></div>
+      <div class="col-md-3"><label class="form-label">Purchase Price</label><input id="purchasePrice" type="number" class="form-control" value="0"></div>
+      <div class="col-md-3"><label class="form-label">Sales Price</label><input id="salesPrice" type="number" class="form-control" value="0"></div>
+      <div class="col-md-3"><label class="form-label">Retailer Price</label><input id="retailerPrice" type="number" class="form-control" value="0"></div>
+      <div class="col-md-2"><label class="form-label">VAT %</label><input id="vatPercent" type="number" class="form-control" value="0"></div>
+      <div class="col-md-2"><label class="form-label">Discount %</label><input id="discountPercent" type="number" class="form-control" value="0"></div>
+      <div class="col-md-2"><label class="form-label">Reorder Level</label><input id="reorderLevel" type="number" class="form-control" value="0"></div>
+      <div class="col-md-3"><label class="form-label">Batch No</label><input id="batchNumber" class="form-control"></div>
+      <div class="col-md-3"><label class="form-label">Expiry Date</label><input id="expiryDate" type="date" class="form-control"></div>
+      <div class="col-12"><label class="form-label">Image URL</label><input id="imageUrl" class="form-control"></div>
+      <div class="col-12"><button class="btn btn-success" onclick="saveMaterialMaster()"><i class="bi bi-save"></i> <span id="materialSaveText">Save Material</span></button></div>
+    </div>
+    <div id="materialMessage" class="small mt-2"></div>
+  </section>
+</main></div>
+<script src="/js/app.js"></script><script src="/js/material-module.js"></script><script>requireAuth();initMaterialCreate();</script>
+</body></html>
