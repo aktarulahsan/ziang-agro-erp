@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 public record ProductDto(
         Long id,
-        @NotBlank String productCode,
+        String productCode,
         @NotBlank String productName,
         MaterialType materialType,
         Long categoryId,

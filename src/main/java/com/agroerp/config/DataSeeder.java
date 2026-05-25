@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import com.agroerp.enums.AccountType;
@@ -253,7 +254,14 @@ public class DataSeeder {
                              MaterialType materialType, Category category, SubCategory subCategory, Brand brand, Unit unit,
                              String packSize, String purchasePrice, String salesPrice, String retailerPrice,
                              String vatPercent, String discountPercent, String batchNumber, String openingStock) {
-        if (productRepository.existsByProductCode(code)) return;
+        if (productRepository.existsByProductCode(code)) {
+            Product existing = productRepository.findByProductCode(code).orElseThrow();
+            if (existing.getExpiryDate() == null) {
+                existing.setExpiryDate(LocalDate.now().plusMonths(9));
+                productRepository.save(existing);
+            }
+            return;
+        }
         Product product = new Product();
         product.setProductCode(code);
         product.setProductName(name + " - " + description);
@@ -269,7 +277,10 @@ public class DataSeeder {
         product.setVatPercent(new BigDecimal(vatPercent));
         product.setDiscountPercent(new BigDecimal(discountPercent));
         product.setBatchNumber(batchNumber);
+        product.setExpiryDate(LocalDate.now().plusMonths(9));
         product.setReorderLevel(new BigDecimal("50"));
+        product.setTotalStockQuantity(new BigDecimal(openingStock));
+        product.setCurrentInventoryValue(new BigDecimal(purchasePrice).multiply(new BigDecimal(openingStock)));
         Product saved = productRepository.save(product);
 
         StockTransaction opening = new StockTransaction();

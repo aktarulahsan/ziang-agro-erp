@@ -67,20 +67,43 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.35) transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.28);
+  border-radius: 999px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   font-size: 22px;
   font-weight: 700;
-  padding: 8px 10px 24px;
+  padding: 8px 10px 18px;
 }
 
 .sidebar nav {
   display: grid;
   gap: 6px;
+  align-content: center;
+  flex: 1;
+  min-height: min-content;
 }
 
 .sidebar a {
@@ -94,7 +117,8 @@ body {
 }
 
 .sidebar a.active,
-.sidebar a:hover {
+.sidebar a:hover,
+.sidebar-group.active > .sidebar-section-title {
   background: rgba(255,255,255,.12);
   color: #fff;
 }
@@ -111,6 +135,7 @@ body {
   align-items: center;
   padding: 11px 12px 6px;
   font-weight: 700;
+  border-radius: 8px;
 }
 
 .sidebar-submenu {
@@ -122,6 +147,47 @@ body {
 .sidebar-submenu a {
   padding: 9px 12px;
   font-size: 14px;
+}
+
+.sidebar-user {
+  border-top: 1px solid rgba(255,255,255,.16);
+  display: grid;
+  grid-template-columns: 1fr 38px;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 4px 0;
+  margin-top: 16px;
+}
+
+.sidebar-user strong,
+.sidebar-user span {
+  display: block;
+  line-height: 1.25;
+}
+
+.sidebar-user strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.sidebar-user span {
+  color: #bad7cd;
+  font-size: 12px;
+}
+
+.sidebar-logout {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 8px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-logout:hover {
+  background: rgba(255,255,255,.16);
 }
 
 .content {
@@ -527,6 +593,87 @@ body {
   border: 1px solid var(--line);
 }
 
+.report-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(150px, .7fr) repeat(2, minmax(150px, .7fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.report-preview {
+  max-width: 1100px;
+}
+
+.report-letterhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+.report-letterhead h2,
+.report-letterhead h3 {
+  margin: 0 0 4px;
+}
+
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.report-metric {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9fbfa;
+}
+
+.report-metric span {
+  display: block;
+  color: #60706b;
+  font-size: 12px;
+}
+
+.report-metric strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.report-table-block {
+  margin-top: 18px;
+}
+
+.report-table-block h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.report-table {
+  font-size: 13px;
+}
+
+.report-table tfoot th {
+  border-top: 2px solid var(--line);
+}
+
+.report-signatures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 42px;
+  margin-top: 56px;
+}
+
+.report-signatures div {
+  border-top: 1px solid #9aa8a3;
+  text-align: center;
+  padding-top: 8px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -534,6 +681,7 @@ body {
   .sidebar {
     position: static;
     height: auto;
+    overflow: visible;
   }
   .sidebar nav {
     grid-template-columns: repeat(2, 1fr);
@@ -550,8 +698,12 @@ body {
   .pos-shell,
   .pos-toolbar,
   .price-workbench,
-  .price-audit-grid {
+  .price-audit-grid,
+  .report-toolbar {
     grid-template-columns: 1fr;
+  }
+  .report-metrics {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
   }
   .cart-panel {
     position: static;
@@ -571,5 +723,12 @@ body {
   .print-sheet {
     border: 0;
     max-width: none;
+    padding: 12mm;
+  }
+  .report-metrics {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .report-table {
+    font-size: 11px;
   }
 }

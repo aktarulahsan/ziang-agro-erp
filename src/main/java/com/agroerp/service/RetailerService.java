@@ -10,4 +10,5 @@ public interface RetailerService {
     RetailerDto get(Long id);
     Page<RetailerDto> search(String keyword, Pageable pageable);
     void softDelete(Long id);
+    String nextRetailerCode();
 }

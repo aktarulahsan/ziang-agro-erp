@@ -2,6 +2,7 @@ package com.agroerp.controller;
 
 import com.agroerp.dto.UserDtos.UserRequest;
 import com.agroerp.dto.UserDtos.UserResponse;
+import com.agroerp.entity.Company;
 import com.agroerp.entity.Role;
 import com.agroerp.entity.User;
 import com.agroerp.exception.BusinessException;
@@ -44,6 +45,7 @@ public class UserController {
     }
 
     @PostMapping
+    @Transactional
     public ApiResponse<UserResponse> create(@Valid @RequestBody UserRequest request) {
         if (userRepository.existsByUsername(request.username())) throw new BusinessException("Username already exists");
         if (userRepository.existsByEmail(request.email())) throw new BusinessException("Email already exists");
@@ -53,8 +55,7 @@ public class UserController {
         user.setFullName(request.fullName());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setActive(request.active());
-        Long companyId = request.companyId() == null ? 1L : request.companyId();
-        user.setCompany(companyRepository.findById(companyId).orElseThrow(() -> new BusinessException("Company not found")));
+        user.setCompany(resolveCompany(request.companyId()));
         Set<Role> roles = new HashSet<>(roleRepository.findAllById(request.roleIds()));
         if (roles.isEmpty()) throw new BusinessException("At least one valid role is required");
         user.setRoles(roles);
@@ -88,5 +89,14 @@ public class UserController {
         Set<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getFullName(),
                 user.getCompany().getId(), user.getCompany().getCompanyName(), roles, user.isActive());
+    }
+
+    private Company resolveCompany(Long companyId) {
+        if (companyId != null) {
+            return companyRepository.findById(companyId).orElseThrow(() -> new BusinessException("Company not found"));
+        }
+        return companyRepository.findAll().stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Company not found"));
     }
 }

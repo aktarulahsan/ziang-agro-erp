@@ -2,6 +2,7 @@ package com.agroerp.controller;
 
 import com.agroerp.dto.ProductDto;
 import com.agroerp.dto.ProductPriceDtos.*;
+import com.agroerp.enums.MaterialType;
 import com.agroerp.enums.PriceConditionType;
 import com.agroerp.exception.BusinessException;
 import com.agroerp.response.ApiResponse;
@@ -38,6 +39,11 @@ public class ProductController {
     @GetMapping
     public ApiResponse<Page<ProductDto>> list(@RequestParam(required = false) String q, Pageable pageable) {
         return ApiResponse.ok("Products loaded", productService.search(q, pageable));
+    }
+
+    @GetMapping("/next-code")
+    public ApiResponse<String> nextCode(@RequestParam(required = false) MaterialType materialType) {
+        return ApiResponse.ok("Product code generated", productService.nextProductCode(materialType));
     }
 
     @GetMapping("/{id}")

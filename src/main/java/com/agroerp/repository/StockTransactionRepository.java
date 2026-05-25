@@ -40,4 +40,13 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
             """)
     List<StockTransaction> movementHistory(@Param("productId") Long productId,
                                            @Param("movementTypeCode") String movementTypeCode);
+
+    @Query("""
+            select tx from StockTransaction tx
+            join fetch tx.product
+            join fetch tx.warehouse
+            where tx.deleted = false
+            order by tx.product.productName asc, tx.batchNumber asc, tx.expiryDate asc
+            """)
+    List<StockTransaction> reportBatchMovements();
 }

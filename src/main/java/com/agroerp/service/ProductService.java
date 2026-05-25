@@ -1,6 +1,7 @@
 package com.agroerp.service;
 
 import com.agroerp.dto.ProductDto;
+import com.agroerp.enums.MaterialType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -10,4 +11,5 @@ public interface ProductService {
     ProductDto get(Long id);
     Page<ProductDto> search(String keyword, Pageable pageable);
     void softDelete(Long id);
+    String nextProductCode(MaterialType materialType);
 }

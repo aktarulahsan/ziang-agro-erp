@@ -1,5 +1,65 @@
 const apiBase = '';
 
+const ROLE = {
+  SUPER_ADMIN: 'ROLE_SUPER_ADMIN',
+  ADMIN: 'ROLE_ADMIN',
+  SALES_MANAGER: 'ROLE_SALES_MANAGER',
+  SALES_OFFICER: 'ROLE_SALES_OFFICER',
+  ACCOUNTS_USER: 'ROLE_ACCOUNTS_USER',
+  STORE_USER: 'ROLE_STORE_USER',
+  DELIVERY_USER: 'ROLE_DELIVERY_USER',
+  RETAILER: 'ROLE_RETAILER'
+};
+
+const ALL_APP_ROLES = Object.values(ROLE);
+const SALES_ROLES = [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SALES_MANAGER, ROLE.SALES_OFFICER];
+const STOCK_ROLES = [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.STORE_USER];
+const BILLING_ROLES = [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SALES_MANAGER, ROLE.ACCOUNTS_USER];
+const DELIVERY_ROLES = [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SALES_MANAGER, ROLE.STORE_USER, ROLE.DELIVERY_USER];
+
+const APP_MENU = [
+  { key: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', href: '/index.html', roles: ALL_APP_ROLES, match: href => href === '/index.html' || href === '/' },
+  { key: 'retailers', label: 'Retailer', icon: 'bi-shop', href: '/pages/retailer/index.html', roles: SALES_ROLES, match: href => href.includes('/pages/retailers') || href.includes('/pages/retailer') },
+  { key: 'products', label: 'Products', icon: 'bi-box-seam', href: '/pages/products.html', roles: STOCK_ROLES, match: href => href.includes('/pages/products') },
+  { key: 'material', label: 'Material', icon: 'bi-boxes', href: '/pages/material/index.html', roles: STOCK_ROLES, match: href => href.includes('/pages/material') || href.includes('/pages/materials') },
+  {
+    key: 'orders',
+    label: 'Orders',
+    icon: 'bi-cart-check',
+    roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SALES_MANAGER, ROLE.SALES_OFFICER, ROLE.RETAILER],
+    match: href => href.includes('/pages/orders'),
+    children: [
+      { key: 'orders-list', label: 'Order List', icon: 'bi-list-ul', href: '/pages/orders/list.html' },
+      { key: 'orders-create', label: 'Create Order', icon: 'bi-plus-circle', href: '/pages/orders/create.html' }
+    ]
+  },
+  {
+    key: 'invoices',
+    label: 'Invoices',
+    icon: 'bi-receipt',
+    roles: BILLING_ROLES,
+    match: href => href.includes('/pages/invoices') || href.includes('/pages/invoice-print'),
+    children: [
+      { key: 'invoices-list', label: 'Invoice List', icon: 'bi-list-ul', href: '/pages/invoices/list.html' },
+      { key: 'invoices-create', label: 'Create Invoice', icon: 'bi-plus-circle', href: '/pages/invoices/create.html' }
+    ]
+  },
+  {
+    key: 'deliveries',
+    label: 'Deliveries',
+    icon: 'bi-truck',
+    roles: DELIVERY_ROLES,
+    match: href => href.includes('/pages/deliveries'),
+    children: [
+      { key: 'deliveries-list', label: 'Delivery List', icon: 'bi-list-ul', href: '/pages/deliveries/list.html' },
+      { key: 'deliveries-create', label: 'Create Delivery', icon: 'bi-plus-circle', href: '/pages/deliveries/create.html' }
+    ]
+  },
+  { key: 'accounts', label: 'Accounts', icon: 'bi-journal-text', href: '/pages/accounts.html', roles: [ROLE.SUPER_ADMIN, ROLE.ACCOUNTS_USER], match: href => href.includes('/pages/accounts') },
+  { key: 'reports', label: 'Reports', icon: 'bi-graph-up-arrow', href: '/pages/reports.html', roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.ACCOUNTS_USER, ROLE.STORE_USER], match: href => href.includes('/pages/reports') },
+  { key: 'settings', label: 'Settings', icon: 'bi-person-gear', href: '/pages/settings/users.html', roles: [ROLE.SUPER_ADMIN], match: href => href.includes('/pages/settings') || href.includes('/swagger-ui') || href.includes('/v3/api-docs') }
+];
+
 function token() {
   return localStorage.getItem('agroToken');
 }
@@ -9,6 +69,7 @@ function requireAuth() {
     window.location.href = '/login.html';
     return;
   }
+  renderSidebarMenu();
   applyMenuPermissions();
   guardCurrentPage();
 }
@@ -33,17 +94,74 @@ function hasRole(role) {
 }
 
 function menuRules() {
-  return [
-    { key: 'dashboard', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_SALES_MANAGER','ROLE_SALES_OFFICER','ROLE_STORE_USER','ROLE_DELIVERY_USER','ROLE_ACCOUNTS_USER','ROLE_RETAILER'], match: href => href === '/index.html' || href === '/' },
-    { key: 'retailers', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_SALES_MANAGER','ROLE_SALES_OFFICER'], match: href => href.includes('/pages/retailers') || href.includes('/pages/retailer') },
-    { key: 'products', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_SALES_MANAGER','ROLE_SALES_OFFICER','ROLE_STORE_USER'], match: href => href.includes('/pages/products') },
-    { key: 'material', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_STORE_USER'], match: href => href.includes('/pages/material') || href.includes('/pages/materials') },
-    { key: 'orders', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_SALES_MANAGER','ROLE_SALES_OFFICER','ROLE_RETAILER'], match: href => href.includes('/pages/orders') },
-    { key: 'invoices', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_SALES_MANAGER','ROLE_ACCOUNTS_USER'], match: href => href.includes('/pages/invoices') || href.includes('/pages/invoice-print') },
-    { key: 'deliveries', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_STORE_USER','ROLE_DELIVERY_USER'], match: href => href.includes('/pages/deliveries') },
-    { key: 'accounts', roles: ['ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_ACCOUNTS_USER'], match: href => href.includes('/pages/accounts') },
-    { key: 'settings', roles: ['ROLE_SUPER_ADMIN'], match: href => href.includes('/pages/settings') || href.includes('/swagger-ui') || href.includes('/v3/api-docs') }
-  ];
+  return APP_MENU.map(({ key, roles, match }) => ({ key, roles, match }));
+}
+
+function canAccessMenuItem(item) {
+  return !item.roles || item.roles.some(hasRole);
+}
+
+function currentPath() {
+  return window.location.pathname === '/' ? '/index.html' : window.location.pathname;
+}
+
+function isMenuItemActive(item) {
+  if (item.match && item.match(currentPath())) return true;
+  if (item.href && new URL(item.href, window.location.origin).pathname === currentPath()) return true;
+  return (item.children || []).some(isMenuItemActive);
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function roleLabel(role) {
+  return String(role || 'USER').replace('ROLE_', '').replaceAll('_', ' ');
+}
+
+function menuLink(item, extraClass = '') {
+  const activeClass = isMenuItemActive(item) ? ' active' : '';
+  return `<a class="${extraClass}${activeClass}" href="${item.href}"><i class="bi ${item.icon}"></i><span>${escapeHtml(item.label)}</span></a>`;
+}
+
+function renderSidebarMenu() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  const menuHtml = APP_MENU.map(item => {
+    if (item.children) {
+      const visibleChildren = item.children.filter(child => canAccessMenuItem({ ...child, roles: child.roles || item.roles }));
+      if (!canAccessMenuItem(item) || !visibleChildren.length) return '';
+      const openClass = isMenuItemActive(item) ? ' active' : '';
+      return `<div class="sidebar-group${openClass}">
+        <div class="sidebar-section-title"><i class="bi ${item.icon}"></i><span>${escapeHtml(item.label)}</span></div>
+        <div class="sidebar-submenu">${visibleChildren.map(child => menuLink(child)).join('')}</div>
+      </div>`;
+    }
+    return canAccessMenuItem(item) ? menuLink(item) : '';
+  }).join('');
+
+  const roles = userRoles().map(roleLabel).join(', ') || 'User';
+  const username = localStorage.getItem('agroUsername') || 'Signed in';
+
+  sidebar.innerHTML = `
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav class="sidebar-menu" aria-label="Main menu">${menuHtml}</nav>
+    <div class="sidebar-user">
+      <div>
+        <strong>${escapeHtml(username)}</strong>
+        <span>${escapeHtml(roles)}</span>
+      </div>
+      <button class="sidebar-logout" type="button" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+    </div>`;
+
+  sidebar.querySelector('.sidebar-logout')?.addEventListener('click', logout);
 }
 
 function canAccessHref(href) {

@@ -28,6 +28,11 @@ public class RetailerController {
         return ApiResponse.ok("Retailer loaded", retailerService.get(id));
     }
 
+    @GetMapping("/next-code")
+    public ApiResponse<String> nextCode() {
+        return ApiResponse.ok("Retailer code generated", retailerService.nextRetailerCode());
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER')")
     public ApiResponse<RetailerDto> create(@Valid @RequestBody RetailerDto dto) {

@@ -12,6 +12,7 @@ import com.agroerp.repository.TerritoryRepository;
 import com.agroerp.service.AuditService;
 import com.agroerp.service.LedgerService;
 import com.agroerp.service.RetailerService;
+import com.agroerp.util.NumberGenerator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,23 +26,30 @@ public class RetailerServiceImpl implements RetailerService {
     private final TerritoryRepository territoryRepository;
     private final LedgerService ledgerService;
     private final AuditService auditService;
+    private final NumberGenerator numberGenerator;
 
     public RetailerServiceImpl(RetailerRepository retailerRepository, TerritoryRepository territoryRepository,
-                               LedgerService ledgerService, AuditService auditService) {
+                               LedgerService ledgerService, AuditService auditService, NumberGenerator numberGenerator) {
         this.retailerRepository = retailerRepository;
         this.territoryRepository = territoryRepository;
         this.ledgerService = ledgerService;
         this.auditService = auditService;
+        this.numberGenerator = numberGenerator;
     }
 
     @Override
     @Transactional
     public RetailerDto create(RetailerDto dto) {
-        if (retailerRepository.existsByRetailerCode(dto.retailerCode())) {
+        String retailerCode = clean(dto.retailerCode());
+        if (retailerCode == null) {
+            retailerCode = nextRetailerCode();
+        }
+        if (retailerRepository.existsByRetailerCode(retailerCode)) {
             throw new BusinessException("Retailer code already exists");
         }
         Retailer retailer = new Retailer();
         apply(dto, retailer);
+        retailer.setRetailerCode(retailerCode);
         retailer.setCurrentDueBalance(dto.openingBalance());
         Retailer saved = retailerRepository.save(retailer);
         if (dto.openingBalance().compareTo(BigDecimal.ZERO) > 0) {
@@ -85,7 +93,9 @@ public class RetailerServiceImpl implements RetailerService {
     }
 
     private void apply(RetailerDto dto, Retailer retailer) {
-        retailer.setRetailerCode(dto.retailerCode());
+        if (clean(dto.retailerCode()) != null) {
+            retailer.setRetailerCode(clean(dto.retailerCode()));
+        }
         retailer.setRetailerName(dto.retailerName());
         retailer.setOwnerName(dto.ownerName());
         retailer.setMobileNumber(dto.mobileNumber());
@@ -100,5 +110,15 @@ public class RetailerServiceImpl implements RetailerService {
                     .orElseThrow(() -> new ResourceNotFoundException("Territory not found"));
             retailer.setTerritory(territory);
         }
+    }
+
+    public String nextRetailerCode() {
+        return numberGenerator.nextFromDatabase("RET",
+                retailerRepository::findMaxRetailerCodeForPrefix,
+                retailerRepository::existsByRetailerCode);
+    }
+
+    private String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }
