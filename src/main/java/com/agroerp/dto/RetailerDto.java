@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 public record RetailerDto(
         Long id,
-        @NotBlank String retailerCode,
+        String retailerCode,
         @NotBlank String retailerName,
         String ownerName,
         @NotBlank String mobileNumber,

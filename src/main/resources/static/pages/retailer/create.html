@@ -17,7 +17,7 @@
     <section class="panel">
       <div class="panel-header"><h2>General and Credit Data</h2><button class="btn btn-sm btn-outline-secondary" onclick="clearRetailerMasterForm()"><i class="bi bi-x-circle"></i> Clear</button></div>
       <div class="row g-3">
-        <div class="col-md-3"><label class="form-label">Retailer Code</label><input id="retailerCode" class="form-control"></div>
+        <div class="col-md-3"><label class="form-label">Retailer Code</label><div class="input-group"><input id="retailerCode" class="form-control" readonly><button class="btn btn-outline-secondary" type="button" title="Generate code" onclick="generateRetailerCode()"><i class="bi bi-arrow-clockwise"></i></button></div></div>
         <div class="col-md-5"><label class="form-label">Retailer Name</label><input id="retailerName" class="form-control"></div>
         <div class="col-md-4"><label class="form-label">Owner / Contact Person</label><input id="ownerName" class="form-control"></div>
         <div class="col-md-3"><label class="form-label">Mobile Number</label><input id="mobileNumber" class="form-control"></div>

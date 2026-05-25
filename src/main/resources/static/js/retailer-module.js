@@ -105,6 +105,19 @@ async function initRetailerCreate() {
   await loadRetailerLookups();
   const id = new URLSearchParams(window.location.search).get('id');
   if (id) await loadRetailerForEdit(id);
+  else await generateRetailerCode();
+}
+
+async function generateRetailerCode() {
+  if (!document.getElementById('retailerCode') || editingRetailerId) return;
+  retailerCode.value = 'Generating...';
+  try {
+    retailerCode.value = await api('/api/retailers/next-code');
+  } catch (error) {
+    retailerCode.value = '';
+    retailerMessage.className = 'small text-danger mt-2';
+    retailerMessage.textContent = error.message;
+  }
 }
 
 function retailerPayload() {
@@ -167,6 +180,7 @@ function clearRetailerMasterForm() {
   if (document.getElementById('retailerFormTitle')) retailerFormTitle.textContent = 'Create Retailer';
   if (document.getElementById('retailerSaveText')) retailerSaveText.textContent = 'Save Retailer';
   if (window.location.search) history.replaceState(null, '', '/pages/retailer/create.html');
+  generateRetailerCode();
 }
 
 async function deleteRetailer(id) {

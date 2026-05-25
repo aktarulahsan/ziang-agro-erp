@@ -102,7 +102,7 @@
       <td class="text-end"><div class="row-actions">
         <button class="btn btn-sm btn-outline-primary" title="Details" onclick="showEncodedRecordDetails('Delivery Details', '${encodeURIComponent(JSON.stringify(d))}')"><i class="bi bi-eye"></i></button>
         <a class="btn btn-sm btn-outline-success" title="Invoice" href="/pages/invoices/create.html?invoiceId=${d.invoiceId}"><i class="bi bi-receipt"></i></a>
-        <a class="btn btn-sm btn-outline-dark" title="Challan" href="/pages/invoice-print.html?invoiceId=${d.invoiceId}"><i class="bi bi-printer"></i></a>
+        <a class="btn btn-sm btn-outline-dark" title="Challan" href="/pages/invoice-print.html?deliveryId=${d.id}"><i class="bi bi-printer"></i></a>
       </div></td></tr>`).join('') : '<tr><td colspan="8">No deliveries</td></tr>';
   }
   async function loadDeliveries() {

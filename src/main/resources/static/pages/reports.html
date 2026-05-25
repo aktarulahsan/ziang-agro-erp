@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports | Agro ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar no-print">
+    <div class="brand"><i class="bi bi-flower1"></i><span>Agro ERP</span></div>
+    <nav>
+      <a href="/index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="/pages/retailer/index.html"><i class="bi bi-shop"></i>Retailer</a>
+      <a href="/pages/products.html"><i class="bi bi-box-seam"></i>Products</a>
+      <a href="/pages/material/index.html"><i class="bi bi-boxes"></i>Material</a>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-cart-check"></i><span>Orders</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/orders/list.html"><i class="bi bi-list-ul"></i>Order List</a>
+          <a href="/pages/orders/create.html"><i class="bi bi-plus-circle"></i>Create Order</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-receipt"></i><span>Invoices</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/invoices/list.html"><i class="bi bi-list-ul"></i>Invoice List</a>
+          <a href="/pages/invoices/create.html"><i class="bi bi-plus-circle"></i>Create Invoice</a>
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-section-title"><i class="bi bi-truck"></i><span>Deliveries</span></div>
+        <div class="sidebar-submenu">
+          <a href="/pages/deliveries/list.html"><i class="bi bi-list-ul"></i>Delivery List</a>
+          <a href="/pages/deliveries/create.html"><i class="bi bi-plus-circle"></i>Create Delivery</a>
+        </div>
+      </div>
+      <a href="/pages/accounts.html"><i class="bi bi-journal-text"></i>Accounts</a>
+      <a class="active" href="/pages/reports.html"><i class="bi bi-graph-up-arrow"></i>Reports</a>
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar no-print">
+      <div>
+        <h1>Reports</h1>
+        <p>Daily, monthly, and date range views for sales, stock, delivery, collection, due, and profit</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" onclick="loadReport()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        <button class="btn btn-success" onclick="printReport()"><i class="bi bi-printer"></i> Print Preview</button>
+      </div>
+    </header>
+
+    <section class="panel no-print">
+      <div class="report-toolbar">
+        <div>
+          <label class="form-label">Report</label>
+          <select id="reportKey" class="form-select"></select>
+        </div>
+        <div>
+          <label class="form-label">Period</label>
+          <select id="periodType" class="form-select">
+            <option value="daily">Daily</option>
+            <option value="monthly">Monthly</option>
+            <option value="range">Date Range</option>
+          </select>
+        </div>
+        <div class="period-control" data-period-control="daily">
+          <label class="form-label">Date</label>
+          <input id="reportDate" type="date" class="form-control">
+        </div>
+        <div class="period-control" data-period-control="monthly" hidden>
+          <label class="form-label">Month</label>
+          <input id="reportMonth" type="month" class="form-control">
+        </div>
+        <div class="period-control" data-period-control="range" hidden>
+          <label class="form-label">From</label>
+          <input id="fromDate" type="date" class="form-control">
+        </div>
+        <div class="period-control" data-period-control="range" hidden>
+          <label class="form-label">To</label>
+          <input id="toDate" type="date" class="form-control">
+        </div>
+      </div>
+    </section>
+
+    <section class="report-preview print-sheet" id="reportSheet">
+      <div class="report-letterhead">
+        <div>
+          <h2 id="companyName">Agro Business ERP</h2>
+          <div>Professional Agro Supply Management</div>
+        </div>
+        <div class="text-end">
+          <h3 id="reportTitle">Reports</h3>
+          <div id="reportPeriod">-</div>
+          <div id="generatedAt">-</div>
+        </div>
+      </div>
+
+      <div class="report-metrics" id="reportMetrics"></div>
+      <div id="reportTables"></div>
+      <div class="report-signatures">
+        <div>Prepared By</div>
+        <div>Checked By</div>
+        <div>Approved By</div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+
+  const reportOptions = [
+    { key: 'overview', label: 'Business Overview', endpoint: '/api/reports/overview', period: true },
+    { key: 'orders', label: 'Order Report', endpoint: '/api/reports/orders', period: true },
+    { key: 'invoices', label: 'Invoice Report', endpoint: '/api/reports/invoices', period: true },
+    { key: 'deliveries', label: 'Delivery Report', endpoint: '/api/reports/deliveries', period: true },
+    { key: 'payments', label: 'Collection / Payment Report', endpoint: '/api/reports/payments', period: true },
+    { key: 'retailer-sales', label: 'Retailer Sales Report', endpoint: '/api/reports/retailer-sales', period: true },
+    { key: 'retailer-due', label: 'Retailer Due Report', endpoint: '/api/reports/retailer-due', period: false },
+    { key: 'retailer-ledger', label: 'Retailer Ledger Report', endpoint: '/api/reports/retailer-ledger', period: true },
+    { key: 'product-sales', label: 'Product Sales Report', endpoint: '/api/reports/product-sales', period: true },
+    { key: 'stock', label: 'Stock Report', endpoint: '/api/reports/stock', period: false },
+    { key: 'low-stock', label: 'Low Stock Report', endpoint: '/api/reports/low-stock', period: false },
+    { key: 'batch-stock', label: 'Batch Stock Report', endpoint: '/api/reports/batch-stock', period: false },
+    { key: 'expiry-products', label: 'Expiry Product Report', endpoint: '/api/reports/expiry-products', period: true },
+    { key: 'discount-offers', label: 'Discount Offer Report', endpoint: '/api/reports/discount-offers', period: false },
+    { key: 'returns', label: 'Returns Report', endpoint: '/api/reports/returns', period: true },
+    { key: 'profit-loss', label: 'Profit and Loss Report', endpoint: '/api/reports/profit-loss', period: true }
+  ];
+
+  function todayIso() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function monthIso() {
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  function money(value) {
+    return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function quantity(value) {
+    return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  }
+
+  function displayValue(value, type) {
+    if (value === null || value === undefined || value === '') return '-';
+    if (type === 'money') return money(value);
+    if (type === 'quantity') return quantity(value);
+    if (type === 'number') return Number(value || 0).toLocaleString();
+    return String(value).replaceAll('_', ' ');
+  }
+
+  function selectedReport() {
+    return reportOptions.find(item => item.key === reportKey.value) || reportOptions[0];
+  }
+
+  function applyPeriodVisibility() {
+    const option = selectedReport();
+    periodType.disabled = !option.period;
+    document.querySelectorAll('.period-control').forEach(control => {
+      control.hidden = !option.period || control.dataset.periodControl !== periodType.value;
+    });
+  }
+
+  function buildReportUrl() {
+    const option = selectedReport();
+    const params = new URLSearchParams();
+    if (option.period) {
+      params.set('period', periodType.value);
+      if (periodType.value === 'daily') params.set('date', reportDate.value);
+      if (periodType.value === 'monthly') params.set('month', reportMonth.value);
+      if (periodType.value === 'range') {
+        params.set('fromDate', fromDate.value);
+        params.set('toDate', toDate.value);
+      }
+    }
+    return params.toString() ? `${option.endpoint}?${params}` : option.endpoint;
+  }
+
+  function renderMetrics(metrics) {
+    reportMetrics.innerHTML = (metrics || []).map(metric => `
+      <div class="report-metric">
+        <span>${metric.label}</span>
+        <strong>${displayValue(metric.value, metric.format)}</strong>
+      </div>
+    `).join('');
+  }
+
+  function renderTable(table) {
+    const rows = table.rows || [];
+    const columns = table.columns || [];
+    const body = rows.length ? rows.map(row => `
+      <tr>
+        ${columns.map(column => `<td class="${column.type === 'money' || column.type === 'number' || column.type === 'quantity' ? 'text-end' : ''}">${displayValue(row[column.key], column.type)}</td>`).join('')}
+      </tr>
+    `).join('') : `<tr><td colspan="${columns.length || 1}">No data found</td></tr>`;
+    const totals = table.totals || {};
+    const hasTotals = Object.keys(totals).length > 0;
+    const footer = hasTotals ? `
+      <tfoot><tr>
+        ${columns.map((column, index) => {
+          if (index === 0) return '<th>Total</th>';
+          const value = totals[column.key];
+          return `<th class="${column.type === 'money' || column.type === 'number' || column.type === 'quantity' ? 'text-end' : ''}">${value === undefined ? '' : displayValue(value, column.type)}</th>`;
+        }).join('')}
+      </tr></tfoot>
+    ` : '';
+    return `
+      <div class="report-table-block">
+        <h4>${table.title}</h4>
+        <div class="table-panel">
+          <table class="table table-sm align-middle report-table">
+            <thead><tr>${columns.map(column => `<th class="${column.type === 'money' || column.type === 'number' || column.type === 'quantity' ? 'text-end' : ''}">${column.label}</th>`).join('')}</tr></thead>
+            <tbody>${body}</tbody>
+            ${footer}
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderReport(report) {
+    companyName.textContent = localStorage.getItem('agroCompanyName') || 'Agro Business ERP';
+    reportTitle.textContent = report.title;
+    reportPeriod.textContent = report.periodLabel;
+    generatedAt.textContent = `Generated: ${new Date(report.generatedAt).toLocaleString()}`;
+    renderMetrics(report.metrics);
+    reportTables.innerHTML = (report.tables || []).map(renderTable).join('');
+  }
+
+  async function loadReport() {
+    reportTables.innerHTML = '<div class="text-muted">Loading report...</div>';
+    try {
+      const report = await api(buildReportUrl());
+      renderReport(report);
+    } catch (error) {
+      reportTables.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    }
+  }
+
+  function printReport() {
+    window.print();
+  }
+
+  reportKey.innerHTML = reportOptions.map(option => `<option value="${option.key}">${option.label}</option>`).join('');
+  reportDate.value = todayIso();
+  reportMonth.value = monthIso();
+  fromDate.value = todayIso();
+  toDate.value = todayIso();
+  reportKey.addEventListener('change', () => {
+    applyPeriodVisibility();
+    loadReport();
+  });
+  periodType.addEventListener('change', () => {
+    applyPeriodVisibility();
+    loadReport();
+  });
+  [reportDate, reportMonth, fromDate, toDate].forEach(input => input.addEventListener('change', loadReport));
+  applyPeriodVisibility();
+  loadReport();
+</script>
+</body>
+</html>

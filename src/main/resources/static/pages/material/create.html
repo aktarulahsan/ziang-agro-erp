@@ -15,9 +15,9 @@
   <section class="panel">
     <div class="panel-header"><h2 id="materialFormTitle">Basic Data and Valuation</h2><button class="btn btn-sm btn-outline-secondary" onclick="clearMaterialMasterForm()"><i class="bi bi-x-circle"></i> Clear</button></div>
     <div class="row g-3">
-      <div class="col-md-3"><label class="form-label">Material Code</label><input id="productCode" class="form-control"></div>
+      <div class="col-md-3"><label class="form-label">Material Code</label><div class="input-group"><input id="productCode" class="form-control" readonly><button class="btn btn-outline-secondary" type="button" title="Generate code" onclick="generateMaterialCode()"><i class="bi bi-arrow-clockwise"></i></button></div></div>
       <div class="col-md-5"><label class="form-label">Material Name</label><input id="productName" class="form-control"></div>
-      <div class="col-md-4"><label class="form-label">Material Type</label><select id="materialType" class="form-select"><option value="RAW_MATERIALS">Raw Materials</option><option value="SEMIFINISHED_PRODUCTS">Semifinished</option><option value="FINISHED_PRODUCTS">Finished</option><option value="TRADING_PRODUCT">Trading</option></select></div>
+      <div class="col-md-4"><label class="form-label">Material Type</label><select id="materialType" class="form-select" onchange="generateMaterialCode()"><option value="RAW_MATERIALS">Raw Materials</option><option value="SEMIFINISHED_PRODUCTS">Semifinished</option><option value="FINISHED_PRODUCTS">Finished</option><option value="TRADING_PRODUCT">Trading</option></select></div>
       <div class="col-md-3"><label class="form-label">Category</label><select id="categoryId" class="form-select"></select></div>
       <div class="col-md-3"><label class="form-label">Sub Category</label><select id="subCategoryId" class="form-select"></select></div>
       <div class="col-md-3"><label class="form-label">Brand</label><select id="brandId" class="form-select"></select></div>

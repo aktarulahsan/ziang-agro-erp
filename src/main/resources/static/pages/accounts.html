@@ -42,23 +42,54 @@
     </nav>
   </aside>
   <main class="content">
-    <header class="topbar"><div><h1>Accounts</h1><p>Chart of accounts and ledger postings from invoice and payment transactions</p></div></header>
+    <header class="topbar">
+      <div><h1>Accounts</h1><p>Chart of accounts, balances, ledger postings, invoice receivables, and cash movement</p></div>
+      <button class="btn btn-outline-success" onclick="loadAccounts()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </header>
+
+    <section class="metric-grid">
+      <div class="metric-card"><span>Total Debit</span><strong id="totalDebit">0.00</strong></div>
+      <div class="metric-card"><span>Total Credit</span><strong id="totalCredit">0.00</strong></div>
+      <div class="metric-card"><span>Receivable Balance</span><strong id="receivableBalance">0.00</strong></div>
+      <div class="metric-card"><span>Cash / Bank Balance</span><strong id="cashBalance">0.00</strong></div>
+      <div class="metric-card"><span>Revenue Posted</span><strong id="revenuePosted">0.00</strong></div>
+      <div class="metric-card"><span>Ledger Entries</span><strong id="ledgerCount">0</strong></div>
+    </section>
+
+    <section class="panel">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4"><label class="form-label">Search Ledger</label><input id="ledgerSearch" class="form-control" placeholder="Account, reference, narration"></div>
+        <div class="col-md-3"><label class="form-label">Account</label><select id="accountFilter" class="form-select"></select></div>
+        <div class="col-md-2"><label class="form-label">From</label><input id="fromDate" type="date" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label">To</label><input id="toDate" type="date" class="form-control"></div>
+        <div class="col-md-1"><button class="btn btn-outline-secondary w-100" onclick="clearAccountFilters()"><i class="bi bi-x-circle"></i></button></div>
+      </div>
+    </section>
+
     <section class="row g-3">
       <div class="col-lg-4">
         <div class="panel table-panel">
-          <div class="panel-header"><h2>Base Accounts</h2></div>
+          <div class="panel-header"><h2>Base Accounts</h2><span class="small text-muted" id="accountCount">0 accounts</span></div>
           <table class="table align-middle">
-            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th class="text-end">Action</th></tr></thead>
+            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th class="text-end">Balance</th><th class="text-end">Action</th></tr></thead>
             <tbody id="accountRows"></tbody>
+          </table>
+        </div>
+        <div class="panel table-panel">
+          <div class="panel-header"><h2>Balance by Type</h2></div>
+          <table class="table align-middle">
+            <thead><tr><th>Type</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Net</th></tr></thead>
+            <tbody id="typeRows"></tbody>
           </table>
         </div>
       </div>
       <div class="col-lg-8">
         <div class="panel table-panel">
-          <div class="panel-header"><h2>Account Ledger</h2><button class="btn btn-sm btn-outline-secondary" onclick="loadAccounts()"><i class="bi bi-arrow-clockwise"></i></button></div>
+          <div class="panel-header"><h2>Account Ledger</h2><span class="small text-muted" id="ledgerMessage"></span></div>
           <table class="table align-middle">
             <thead><tr><th>Date</th><th>Account</th><th>Reference</th><th>Narration</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th><th class="text-end">Action</th></tr></thead>
             <tbody id="ledgerRows"></tbody>
+            <tfoot><tr><th colspan="4" class="text-end">Filtered Total</th><th class="text-end" id="filteredDebit">0.00</th><th class="text-end" id="filteredCredit">0.00</th><th class="text-end" id="filteredBalance">0.00</th><th></th></tr></tfoot>
           </table>
         </div>
       </div>
@@ -69,12 +100,115 @@
 <script src="/js/app.js"></script>
 <script>
   requireAuth();
-  async function loadAccounts() {
-    const [accounts, ledger] = await Promise.all([api('/api/accounts'), api('/api/accounts/ledger')]);
-    accountRows.innerHTML = accounts.map(a => `<tr><td>${a.accountCode}</td><td>${a.accountName}</td><td>${a.accountType}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" title="Details" onclick="showEncodedRecordDetails('Account Details', '${encodeURIComponent(JSON.stringify(a))}')"><i class="bi bi-eye"></i></button></td></tr>`).join('');
-    ledgerRows.innerHTML = ledger.map(l => `<tr><td>${l.transactionDate}</td><td>${l.accountCode} - ${l.accountName}</td><td>${l.referenceType || ''} #${l.referenceId || ''}</td><td>${l.narration || ''}</td><td class="text-end">${l.debitAmount}</td><td class="text-end">${l.creditAmount}</td><td class="text-end">${l.runningBalance}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" title="Details" onclick="showEncodedRecordDetails('Ledger Details', '${encodeURIComponent(JSON.stringify(l))}')"><i class="bi bi-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="8">No ledger postings yet</td></tr>';
+  let accountList = [];
+  let ledgerList = [];
+
+  function money(v) { return Number(v || 0).toFixed(2); }
+  function accountTone(type) {
+    return { ASSET: 'success', LIABILITY: 'warning', EQUITY: 'secondary', INCOME: 'primary', EXPENSE: 'danger' }[type] || 'light text-dark';
   }
-  loadAccounts();
+  function accountBalance(code) {
+    const last = ledgerList.filter(l => l.accountCode === code).at(-1);
+    return last ? Number(last.runningBalance || 0) : 0;
+  }
+  function ledgerSearchText(l) {
+    return [l.transactionDate, l.accountCode, l.accountName, l.referenceType, l.referenceId, l.narration, l.debitAmount, l.creditAmount, l.runningBalance].join(' ').toLowerCase();
+  }
+  function filteredLedger() {
+    const q = ledgerSearch.value.trim().toLowerCase();
+    const account = accountFilter.value;
+    const from = fromDate.value;
+    const to = toDate.value;
+    return ledgerList.filter(l =>
+      (!q || ledgerSearchText(l).includes(q)) &&
+      (!account || l.accountCode === account) &&
+      (!from || l.transactionDate >= from) &&
+      (!to || l.transactionDate <= to)
+    );
+  }
+  function renderSummary() {
+    const debit = ledgerList.reduce((sum, l) => sum + Number(l.debitAmount || 0), 0);
+    const credit = ledgerList.reduce((sum, l) => sum + Number(l.creditAmount || 0), 0);
+    totalDebit.textContent = money(debit);
+    totalCredit.textContent = money(credit);
+    ledgerCount.textContent = ledgerList.length;
+    receivableBalance.textContent = money(accountBalance('1100'));
+    cashBalance.textContent = money(accountBalance('1000'));
+    revenuePosted.textContent = money(Math.abs(accountBalance('4000')));
+  }
+  function renderAccounts() {
+    accountCount.textContent = `${accountList.length} account(s)`;
+    accountFilter.innerHTML = '<option value="">All Accounts</option>' + accountList.map(a => `<option value="${a.accountCode}">${a.accountCode} - ${a.accountName}</option>`).join('');
+    accountRows.innerHTML = accountList.map(a => {
+      const balance = accountBalance(a.accountCode);
+      return `<tr>
+        <td><strong>${a.accountCode}</strong></td>
+        <td>${a.accountName}<div class="small text-muted">${a.systemAccount ? 'System account' : 'Manual account'} | ${a.active ? 'Active' : 'Inactive'}</div></td>
+        <td><span class="badge text-bg-${accountTone(a.accountType)}">${a.accountType}</span></td>
+        <td class="text-end">${money(balance)}</td>
+        <td class="text-end"><button class="btn btn-sm btn-outline-primary" title="Details" onclick="showEncodedRecordDetails('Account Details', '${encodeURIComponent(JSON.stringify({ ...a, balance }))}')"><i class="bi bi-eye"></i></button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5">No accounts found.</td></tr>';
+  }
+  function renderTypes() {
+    const rows = accountList.reduce((map, account) => {
+      map[account.accountType] ||= { type: account.accountType, debit: 0, credit: 0, net: 0 };
+      ledgerList.filter(l => l.accountCode === account.accountCode).forEach(l => {
+        map[account.accountType].debit += Number(l.debitAmount || 0);
+        map[account.accountType].credit += Number(l.creditAmount || 0);
+      });
+      map[account.accountType].net += accountBalance(account.accountCode);
+      return map;
+    }, {});
+    typeRows.innerHTML = Object.values(rows).map(r => `<tr><td><span class="badge text-bg-${accountTone(r.type)}">${r.type}</span></td><td class="text-end">${money(r.debit)}</td><td class="text-end">${money(r.credit)}</td><td class="text-end">${money(r.net)}</td></tr>`).join('') || '<tr><td colspan="4">No balances yet.</td></tr>';
+  }
+  function renderLedger() {
+    const rows = filteredLedger();
+    const debit = rows.reduce((sum, l) => sum + Number(l.debitAmount || 0), 0);
+    const credit = rows.reduce((sum, l) => sum + Number(l.creditAmount || 0), 0);
+    ledgerMessage.textContent = rows.length ? `${rows.length} posting(s) found` : 'No postings found';
+    filteredDebit.textContent = money(debit);
+    filteredCredit.textContent = money(credit);
+    filteredBalance.textContent = money(debit - credit);
+    ledgerRows.innerHTML = rows.map(l => `<tr>
+      <td>${l.transactionDate}</td>
+      <td><strong>${l.accountCode}</strong><div class="small text-muted">${l.accountName}</div></td>
+      <td>${l.referenceType || '-'} #${l.referenceId || '-'}</td>
+      <td>${l.narration || ''}</td>
+      <td class="text-end">${money(l.debitAmount)}</td>
+      <td class="text-end">${money(l.creditAmount)}</td>
+      <td class="text-end">${money(l.runningBalance)}</td>
+      <td class="text-end"><button class="btn btn-sm btn-outline-primary" title="Details" onclick="showEncodedRecordDetails('Ledger Details', '${encodeURIComponent(JSON.stringify(l))}')"><i class="bi bi-eye"></i></button></td>
+    </tr>`).join('') || '<tr><td colspan="8">No ledger postings yet</td></tr>';
+  }
+  function renderAccountsPage() {
+    renderSummary();
+    renderAccounts();
+    renderTypes();
+    renderLedger();
+  }
+  async function loadAccounts() {
+    ledgerMessage.textContent = 'Loading...';
+    const [accounts, ledger] = await Promise.all([api('/api/accounts'), api('/api/accounts/ledger')]);
+    accountList = accounts || [];
+    ledgerList = ledger || [];
+    renderAccountsPage();
+  }
+  function clearAccountFilters() {
+    ledgerSearch.value = '';
+    accountFilter.value = '';
+    fromDate.value = '';
+    toDate.value = '';
+    renderLedger();
+  }
+  ledgerSearch.addEventListener('input', renderLedger);
+  accountFilter.addEventListener('change', renderLedger);
+  fromDate.addEventListener('change', renderLedger);
+  toDate.addEventListener('change', renderLedger);
+  loadAccounts().catch(error => {
+    ledgerMessage.textContent = error.message;
+    ledgerRows.innerHTML = `<tr><td colspan="8">${error.message}</td></tr>`;
+  });
 </script>
 </body>
 </html>

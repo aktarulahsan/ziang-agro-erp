@@ -3,74 +3,167 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Print Templates | Agro ERP</title>
+  <title>Print Document | Agro ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="/css/app.css" rel="stylesheet">
 </head>
 <body>
 <div class="app-shell">
-  <aside class="sidebar no-print">
-    <div class="brand"><span>Agro ERP</span></div>
-    <nav>
-      <a href="/index.html">Dashboard</a>
-      <a href="/pages/orders/list.html">Order List</a>
-      <a href="/pages/orders/create.html">Create Order</a>
-      <a href="/pages/invoices/list.html">Invoice List</a>
-      <a href="/pages/invoices/create.html">Create Invoice</a>
-      <a href="/pages/deliveries/list.html">Delivery List</a>
-      <a href="/pages/deliveries/create.html">Create Delivery</a>
-      <a class="active" href="/pages/invoice-print.html">Prints</a>
-    </nav>
-  </aside>
+  <aside class="sidebar no-print"></aside>
   <main class="content">
     <header class="topbar no-print">
-      <div><h1>Print Templates</h1><p>Invoice, delivery challan, and money receipt layouts</p></div>
-      <button class="btn btn-success" onclick="window.print()">Print</button>
+      <div><h1 id="printTitle">Print Document</h1><p id="printSubtitle">Loading print data</p></div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/pages/invoices/list.html"><i class="bi bi-list-ul"></i> Invoices</a>
+        <a class="btn btn-outline-secondary" href="/pages/deliveries/list.html"><i class="bi bi-truck"></i> Deliveries</a>
+        <button class="btn btn-success" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+      </div>
     </header>
-    <section class="print-sheet">
+    <section class="print-sheet" id="printSheet">
+      <div class="text-muted">Loading...</div>
+    </section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+
+  const params = new URLSearchParams(window.location.search);
+  const invoiceId = params.get('invoiceId');
+  const deliveryId = params.get('deliveryId');
+  const money = value => Number(value || 0).toFixed(2);
+  const qty = value => Number(value || 0).toFixed(3);
+  const safe = value => escapeHtml(value || '-');
+
+  function companyBlock() {
+    return `
+      <div>
+        <h2 class="mb-1">${safe(localStorage.getItem('agroCompanyName') || 'Agro Business ERP')}</h2>
+        <div>Professional Agro Supply Management</div>
+        <div>Dhaka, Bangladesh</div>
+      </div>`;
+  }
+
+  function itemRows(items, mode) {
+    return (items || []).map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td><strong>${safe(item.productName)}</strong><div class="small text-muted">${safe(item.productCode)}</div></td>
+        <td class="text-end">${qty(item.quantity)}</td>
+        ${mode === 'invoice' ? `
+          <td class="text-end">${money(item.unitPrice)}</td>
+          <td class="text-end">${money(item.discountAmount)}</td>
+          <td class="text-end">${money(item.vatAmount)}</td>
+          <td class="text-end">${money(item.lineTotal)}</td>` : ''}
+      </tr>`).join('');
+  }
+
+  function renderInvoice(invoice) {
+    printTitle.textContent = 'Invoice Print';
+    printSubtitle.textContent = `${invoice.invoiceNumber} | ${invoice.retailerName}`;
+    printSheet.innerHTML = `
       <div class="d-flex justify-content-between border-bottom pb-3 mb-4">
-        <div>
-          <h2 class="mb-1">Agro Business ERP</h2>
-          <div>Professional Agro Supply Management</div>
-          <div>Dhaka, Bangladesh</div>
-        </div>
+        ${companyBlock()}
         <div class="text-end">
           <h3>INVOICE</h3>
-          <div>Invoice No: INV-20260518-1001</div>
-          <div>Date: 2026-05-18</div>
+          <div>Invoice No: ${safe(invoice.invoiceNumber)}</div>
+          <div>Date: ${safe(invoice.invoiceDate)}</div>
+          <div>Status: ${safe(String(invoice.status || '').replaceAll('_', ' '))}</div>
         </div>
       </div>
       <div class="row mb-4">
         <div class="col-6">
           <strong>Bill To</strong>
-          <div>Green Agro Retail</div>
-          <div>Owner: Rahim Uddin</div>
-          <div>Mobile: 01700000000</div>
+          <div>${safe(invoice.retailerName)} (${safe(invoice.retailerCode)})</div>
+          <div>Owner: ${safe(invoice.ownerName)}</div>
+          <div>Mobile: ${safe(invoice.mobileNumber)}</div>
+          <div>Market: ${safe(invoice.marketName)}</div>
+          <div>${safe(invoice.address)}</div>
         </div>
         <div class="col-6 text-end">
-          <strong>Delivery Address</strong>
-          <div>Farmgate Market, Dhaka</div>
-          <div>Vehicle: Dhaka Metro TA-1234</div>
+          <strong>Order Reference</strong>
+          <div>Order No: ${safe(invoice.orderNumber)}</div>
+          <div>Order Date: ${safe(invoice.orderDate)}</div>
         </div>
       </div>
       <table class="table table-bordered">
-        <thead><tr><th>Product</th><th class="text-end">Qty</th><th class="text-end">Price</th><th class="text-end">Discount</th><th class="text-end">VAT</th><th class="text-end">Total</th></tr></thead>
-        <tbody>
-          <tr><td>Organic Fertilizer 25KG</td><td class="text-end">10</td><td class="text-end">950.00</td><td class="text-end">190.00</td><td class="text-end">465.50</td><td class="text-end">9775.50</td></tr>
-        </tbody>
+        <thead><tr><th>SL</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Price</th><th class="text-end">Discount</th><th class="text-end">VAT</th><th class="text-end">Total</th></tr></thead>
+        <tbody>${itemRows(invoice.items, 'invoice') || '<tr><td colspan="7">No items found.</td></tr>'}</tbody>
         <tfoot>
-          <tr><th colspan="5" class="text-end">Net Amount</th><th class="text-end">9775.50</th></tr>
-          <tr><th colspan="5" class="text-end">Paid</th><th class="text-end">5000.00</th></tr>
-          <tr><th colspan="5" class="text-end">Due</th><th class="text-end">4775.50</th></tr>
+          <tr><th colspan="6" class="text-end">Gross Amount</th><th class="text-end">${money(invoice.grossAmount)}</th></tr>
+          <tr><th colspan="6" class="text-end">Discount</th><th class="text-end">${money(invoice.discountAmount)}</th></tr>
+          <tr><th colspan="6" class="text-end">VAT</th><th class="text-end">${money(invoice.vatAmount)}</th></tr>
+          <tr><th colspan="6" class="text-end">Net Amount</th><th class="text-end">${money(invoice.netAmount)}</th></tr>
+          <tr><th colspan="6" class="text-end">Paid</th><th class="text-end">${money(invoice.paidAmount)}</th></tr>
+          <tr><th colspan="6" class="text-end">Due</th><th class="text-end">${money(invoice.dueAmount)}</th></tr>
         </tfoot>
       </table>
       <div class="row mt-5">
         <div class="col-4 text-center border-top pt-2">Prepared By</div>
+        <div class="col-4 text-center border-top pt-2">Checked By</div>
+        <div class="col-4 text-center border-top pt-2">Received By</div>
+      </div>`;
+  }
+
+  function renderChallan(delivery) {
+    printTitle.textContent = 'Delivery Challan';
+    printSubtitle.textContent = `${delivery.deliveryNumber} | ${delivery.retailerName}`;
+    printSheet.innerHTML = `
+      <div class="d-flex justify-content-between border-bottom pb-3 mb-4">
+        ${companyBlock()}
+        <div class="text-end">
+          <h3>DELIVERY CHALLAN</h3>
+          <div>Challan No: ${safe(delivery.deliveryNumber)}</div>
+          <div>Date: ${safe(delivery.deliveryDate)}</div>
+          <div>Invoice: ${safe(delivery.invoiceNumber)}</div>
+        </div>
+      </div>
+      <div class="row mb-4">
+        <div class="col-6">
+          <strong>Deliver To</strong>
+          <div>${safe(delivery.retailerName)} (${safe(delivery.retailerCode)})</div>
+          <div>Owner: ${safe(delivery.ownerName)}</div>
+          <div>Mobile: ${safe(delivery.mobileNumber)}</div>
+          <div>${safe(delivery.deliveryAddress || delivery.address)}</div>
+        </div>
+        <div class="col-6 text-end">
+          <strong>Transport</strong>
+          <div>Vehicle: ${safe(delivery.vehicleDetails)}</div>
+          <div>Delivery Person: ${safe(delivery.deliveryPerson)}</div>
+          <div>Contact: ${safe(delivery.deliveryContactNo)}</div>
+          <div>Route: ${safe(delivery.routeName)}</div>
+        </div>
+      </div>
+      <table class="table table-bordered">
+        <thead><tr><th>SL</th><th>Product</th><th class="text-end">Delivered Qty</th></tr></thead>
+        <tbody>${itemRows(delivery.items, 'challan') || '<tr><td colspan="3">No items found.</td></tr>'}</tbody>
+      </table>
+      <div class="mt-3"><strong>Remarks:</strong> ${safe(delivery.remarks)}</div>
+      <div class="row mt-5">
+        <div class="col-4 text-center border-top pt-2">Prepared By</div>
         <div class="col-4 text-center border-top pt-2">Delivered By</div>
         <div class="col-4 text-center border-top pt-2">Received By</div>
-      </div>
-    </section>
-  </main>
-</div>
+      </div>`;
+  }
+
+  async function loadPrintDocument() {
+    try {
+      if (deliveryId) {
+        renderChallan(await api(`/api/deliveries/${deliveryId}/print`));
+        return;
+      }
+      if (invoiceId) {
+        renderInvoice(await api(`/api/invoices/${invoiceId}/print`));
+        return;
+      }
+      printSheet.innerHTML = '<div class="text-danger">No invoiceId or deliveryId provided.</div>';
+    } catch (error) {
+      printSheet.innerHTML = `<div class="text-danger">${safe(error.message)}</div>`;
+    }
+  }
+
+  loadPrintDocument();
+</script>
 </body>
 </html>

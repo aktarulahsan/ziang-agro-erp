@@ -13,6 +13,7 @@ import com.agroerp.repository.SubCategoryRepository;
 import com.agroerp.repository.UnitRepository;
 import com.agroerp.service.AuditService;
 import com.agroerp.service.ProductService;
+import com.agroerp.util.NumberGenerator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,26 +29,35 @@ public class ProductServiceImpl implements ProductService {
     private final BrandRepository brandRepository;
     private final UnitRepository unitRepository;
     private final AuditService auditService;
+    private final NumberGenerator numberGenerator;
 
     public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository,
                               SubCategoryRepository subCategoryRepository, BrandRepository brandRepository,
-                              UnitRepository unitRepository, AuditService auditService) {
+                              UnitRepository unitRepository, AuditService auditService, NumberGenerator numberGenerator) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.brandRepository = brandRepository;
         this.unitRepository = unitRepository;
         this.auditService = auditService;
+        this.numberGenerator = numberGenerator;
     }
 
     @Override
     @Transactional
     public ProductDto create(ProductDto dto) {
-        if (productRepository.existsByProductCode(dto.productCode())) {
+        MaterialType materialType = dto.materialType() == null ? MaterialType.FINISHED_PRODUCTS : dto.materialType();
+        String productCode = clean(dto.productCode());
+        if (productCode == null) {
+            productCode = nextProductCode(materialType);
+        }
+        if (productRepository.existsByProductCode(productCode)) {
             throw new BusinessException("Product code already exists");
         }
         Product product = new Product();
         apply(dto, product);
+        product.setProductCode(productCode);
+        product.setMaterialType(materialType);
         Product saved = productRepository.save(product);
         auditService.log("Product", "CREATE", saved.getId(), saved.getProductCode());
         return ProductMapper.toDto(saved);
@@ -86,7 +96,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void apply(ProductDto dto, Product product) {
-        product.setProductCode(dto.productCode());
+        if (clean(dto.productCode()) != null) {
+            product.setProductCode(clean(dto.productCode()));
+        }
         product.setProductName(dto.productName());
         product.setMaterialType(dto.materialType() == null ? MaterialType.FINISHED_PRODUCTS : dto.materialType());
         product.setPackSize(dto.packSize());
@@ -105,5 +117,22 @@ public class ProductServiceImpl implements ProductService {
         if (dto.subCategoryId() != null) product.setSubCategory(subCategoryRepository.findById(dto.subCategoryId()).orElseThrow(() -> new ResourceNotFoundException("Sub category not found")));
         if (dto.brandId() != null) product.setBrand(brandRepository.findById(dto.brandId()).orElseThrow(() -> new ResourceNotFoundException("Brand not found")));
         if (dto.unitId() != null) product.setUnit(unitRepository.findById(dto.unitId()).orElseThrow(() -> new ResourceNotFoundException("Unit not found")));
+    }
+
+    @Override
+    public String nextProductCode(MaterialType materialType) {
+        String prefix = switch (materialType == null ? MaterialType.FINISHED_PRODUCTS : materialType) {
+            case RAW_MATERIALS -> "RM";
+            case SEMIFINISHED_PRODUCTS -> "SF";
+            case FINISHED_PRODUCTS -> "FG";
+            case TRADING_PRODUCT -> "TP";
+        };
+        return numberGenerator.nextFromDatabase(prefix,
+                productRepository::findMaxProductCodeForPrefix,
+                productRepository::existsByProductCode);
+    }
+
+    private String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

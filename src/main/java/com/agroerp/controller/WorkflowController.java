@@ -21,13 +21,13 @@ public class WorkflowController {
     }
 
     @PostMapping("/orders/{orderId}/invoice")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','ACCOUNTS_USER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','ACCOUNTS_USER','SALES_MANAGER')")
     public ApiResponse<InvoiceResponse> invoice(@PathVariable Long orderId) {
         return ApiResponse.ok("Invoice generated", workflowService.generateInvoice(orderId));
     }
 
     @PostMapping("/invoices/{invoiceId}/delivery")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','STORE_USER','DELIVERY_USER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER','STORE_USER','DELIVERY_USER')")
     public ApiResponse<DeliveryResponse> delivery(@PathVariable Long invoiceId, @Valid @RequestBody DeliveryRequest request) {
         return ApiResponse.ok("Delivery created", workflowService.createDelivery(invoiceId, request));
     }

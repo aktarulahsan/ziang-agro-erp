@@ -91,6 +91,19 @@ async function initMaterialCreate() {
   unitId.innerHTML = units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
   const editId = new URLSearchParams(window.location.search).get('id');
   if (editId) await loadMaterialForEdit(editId);
+  else await generateMaterialCode();
+}
+
+async function generateMaterialCode() {
+  if (!document.getElementById('productCode') || editingMaterialId) return;
+  productCode.value = 'Generating...';
+  try {
+    productCode.value = await api(`/api/products/next-code?materialType=${encodeURIComponent(materialType.value || 'FINISHED_PRODUCTS')}`);
+  } catch (error) {
+    productCode.value = '';
+    materialMessage.className = 'small text-danger mt-2';
+    materialMessage.textContent = error.message;
+  }
 }
 
 async function loadMaterialSetup() {
@@ -183,6 +196,7 @@ function clearMaterialMasterForm() {
   if (title) title.textContent = 'Basic Data and Valuation';
   if (buttonText) buttonText.textContent = 'Save Material';
   if (window.location.search) history.replaceState(null, '', '/pages/material/create.html');
+  generateMaterialCode();
 }
 
 async function initMaterialStock() {

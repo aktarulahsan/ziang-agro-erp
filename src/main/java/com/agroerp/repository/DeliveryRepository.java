@@ -20,4 +20,26 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     @Query("select max(d.deliveryNumber) from Delivery d where d.deliveryNumber like concat(:prefix, '-%')")
     Optional<String> findMaxDeliveryNumberForPrefix(@Param("prefix") String prefix);
+
+    @Query("""
+            select distinct d from Delivery d
+            join fetch d.retailer
+            join fetch d.invoice invoice
+            left join fetch d.items item
+            left join fetch item.product
+            where d.id = :id
+            """)
+    Optional<Delivery> findPrintById(@Param("id") Long id);
+
+    @Query("""
+            select distinct d from Delivery d
+            join fetch d.retailer
+            join fetch d.invoice
+            left join fetch d.items item
+            left join fetch item.product
+            where d.deleted = false
+              and d.deliveryDate between :fromDate and :toDate
+            order by d.deliveryDate desc, d.id desc
+            """)
+    List<Delivery> reportDeliveries(@Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 }
